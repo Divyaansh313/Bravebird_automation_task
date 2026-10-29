@@ -29,11 +29,19 @@ log = logging.getLogger(__name__)
 _HIDDEN_VALUE = re.compile(r'(<input\b[^>]*type="hidden"[^>]*\bvalue=")[^"]*(")', re.IGNORECASE)
 _HIDDEN_VALUE_REV = re.compile(r'(<input\b[^>]*\bvalue=")[^"]*("[^>]*type="hidden")', re.IGNORECASE)
 _ANY_INPUT_VALUE = re.compile(r'(<(?:input|textarea)\b[^>]*\bvalue=")[^"]*(")', re.IGNORECASE)
+# Known session-bound meta tags, plus any meta whose name looks like a
+# token/nonce/hmac/session value (e.g. fetch-nonce), so new ones are caught too.
 _CSRF_META = re.compile(r'(<meta\b[^>]*name="(?:csrf-token|request-id|html-safe-nonce|'
-                        r'visitor-payload|visitor-hmac|user-login|octolytics-[\w-]+)"'
+                        r'visitor-payload|visitor-hmac|user-login|octolytics-[\w-]+|'
+                        r'[\w:-]*(?:nonce|token|hmac|csrf|session|payload)[\w:-]*)"'
                         r'[^>]*content=")[^"]*(")', re.IGNORECASE)
 
 
+# Numeric account / private-repo ids: avatar URLs (/u/<user id>) and
+# hovercard tags ("repository:<id>", "user:<id>").
+_AVATAR_ID = re.compile(r"(avatars\.githubusercontent\.com/u/)\d+")
+_SUBJECT_ID = re.compile(r"\b((?:repository|user|organization):)\d+")
+_ID_ATTR = re.compile(r'(\bdata-[\w-]*(?:repository|user|owner|org)[\w-]*-id=")\d+(")', re.IGNORECASE)
 _EMAIL = re.compile(r"[A-Za-z0-9._%+-]+@[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)*\.[A-Za-z]{2,}")
 
 
@@ -43,6 +51,9 @@ def scrub_html(html: str) -> str:
     html = _ANY_INPUT_VALUE.sub(rf"\1{MASK}\2", html)
     html = _CSRF_META.sub(rf"\1{MASK}\2", html)
     html = _EMAIL.sub(MASK, html)
+    html = _AVATAR_ID.sub(rf"\1{MASK}", html)
+    html = _SUBJECT_ID.sub(rf"\1{MASK}", html)
+    html = _ID_ATTR.sub(rf"\1{MASK}\2", html)
     return redactor.redact(html)
 
 
