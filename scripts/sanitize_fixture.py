@@ -25,6 +25,12 @@ s = re.sub(r'<meta\b[^>]*name="(?:csrf-token|request-id|html-safe-nonce|visitor-
            r'octolytics-[\w-]+|analytics-[\w-]+|user-login|fetch-nonce|release)"[^>]*>', "", s,
            flags=re.IGNORECASE)
 s = re.sub(r'\s(?:src|srcset)="https://(?:avatars|private-avatars)[^"]*"', "", s)
+s = re.sub(r'<meta\b[^>]*name="[\w:-]*(?:nonce|token|hmac|csrf|session|payload)[\w:-]*"[^>]*>', "",
+           s, flags=re.IGNORECASE)
+s = re.sub(r"(avatars\.githubusercontent\.com/u/)\d+", r"\g<1>0", s)
+s = re.sub(r"\b((?:repository|user|organization):)\d+", r"\g<1>0", s)
+s = re.sub(r'(\bdata-[\w-]*(?:repository|user|owner|org)[\w-]*-id=")\d+(")', r"\g<1>0\2", s,
+           flags=re.IGNORECASE)
 for pair in a.replace:
     old, new = pair.split("=", 1)
     s = re.sub(re.escape(old), new, s, flags=re.IGNORECASE)
