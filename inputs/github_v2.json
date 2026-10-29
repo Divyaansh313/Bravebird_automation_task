@@ -1,0 +1,16 @@
+{
+  "portal": "github",
+  "base_url": "https://github.com",
+  "repo": "Divyaansh313/bravebird-portal-sandbox",
+  "form": {
+    "tag": "v3.0.0-beta",
+    "target": "master",
+    "title": "Second automated draft",
+    "notes": "Different inputs, same code.",
+    "label": "None"
+  },
+  "document": {
+    "release_tag": "v1.1.0",
+    "asset_name": "statement-v1.1.0.pdf"
+  }
+}

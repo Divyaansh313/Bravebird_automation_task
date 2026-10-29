@@ -1,0 +1,139 @@
+{
+  "run_id": "2026-10-30T02-26-33",
+  "portal": "github",
+  "started_at": "2026-10-29T20:56:33.738+00:00",
+  "finished_at": "2026-10-29T20:56:50.497+00:00",
+  "status": "ok",
+  "session": "full_login",
+  "inputs": {
+    "portal": "github",
+    "base_url": "https://github.com",
+    "repo": "[REDACTED]/bravebird-portal-sandbox",
+    "form": {
+      "tag": "v2.0.0-rc1",
+      "target": "staging",
+      "title": "Bravebird automated draft",
+      "notes": "Drafted by the Bravebird automation run.",
+      "label": "Pre-release",
+      "keep_draft": false
+    },
+    "document": {
+      "release_tag": "v1.0.0",
+      "asset_name": "statement-v1.0.0.pdf"
+    },
+    "headless": true,
+    "state_dir": "state",
+    "output_dir": "runs"
+  },
+  "pages_visited": [
+    {
+      "url": "https://github.com/login",
+      "at": "2026-10-29T20:56:34.863+00:00"
+    },
+    {
+      "url": "https://github.com/sessions/two-factor/app",
+      "at": "2026-10-29T20:56:36.229+00:00"
+    },
+    {
+      "url": "https://github.com/",
+      "at": "2026-10-29T20:56:37.888+00:00"
+    },
+    {
+      "url": "https://github.com/[REDACTED]/bravebird-portal-sandbox",
+      "at": "2026-10-29T20:56:38.770+00:00"
+    },
+    {
+      "url": "https://github.com/[REDACTED]/bravebird-portal-sandbox/releases",
+      "at": "2026-10-29T20:56:40.830+00:00"
+    },
+    {
+      "url": "https://github.com/[REDACTED]/bravebird-portal-sandbox/releases/new",
+      "at": "2026-10-29T20:56:41.888+00:00"
+    },
+    {
+      "url": "https://github.com/[REDACTED]/bravebird-portal-sandbox/releases/edit/untagged-93e263f7f01a1877215f",
+      "at": "2026-10-29T20:56:45.013+00:00"
+    },
+    {
+      "url": "https://github.com/[REDACTED]/bravebird-portal-sandbox/releases",
+      "at": "2026-10-29T20:56:45.799+00:00"
+    },
+    {
+      "url": "https://github.com/[REDACTED]/bravebird-portal-sandbox/releases/tag/v1.0.0",
+      "at": "2026-10-29T20:56:46.754+00:00"
+    },
+    {
+      "url": "https://github.com/[REDACTED]/bravebird-portal-sandbox/releases",
+      "at": "2026-10-29T20:56:48.396+00:00"
+    }
+  ],
+  "form": {
+    "tag": "v2.0.0-rc1",
+    "tag_mode": "new",
+    "target_shown": true,
+    "target": "staging",
+    "title": "Bravebird automated draft",
+    "notes_chars": 40,
+    "label": "Pre-release",
+    "draft_url": "https://github.com/[REDACTED]/bravebird-portal-sandbox/releases/edit/untagged-93e263f7f01a1877215f"
+  },
+  "files": [
+    {
+      "path": "runs/2026-10-30T02-26-33/downloads/statement-v1.0.0.pdf",
+      "name": "statement-v1.0.0.pdf",
+      "bytes": 21499,
+      "sha256": "9149114fcc0135f66e89e5971295b768ba875039b4a39a705d0b494d62e6e235",
+      "method": "native_download",
+      "source_url": "https://github.com/[REDACTED]/bravebird-portal-sandbox/releases/download/v1.0.0/statement-v1.0.0.pdf",
+      "expected_sha256": "9149114fcc0135f66e89e5971295b768ba875039b4a39a705d0b494d62e6e235",
+      "verified": true
+    }
+  ],
+  "retries": [],
+  "error": null,
+  "stages": [
+    {
+      "key": "login",
+      "status": "ok",
+      "seconds": 3.641,
+      "note": null
+    },
+    {
+      "key": "session.save",
+      "status": "ok",
+      "seconds": 0.009,
+      "note": null
+    },
+    {
+      "key": "nav.to_form",
+      "status": "ok",
+      "seconds": 3.762,
+      "note": null
+    },
+    {
+      "key": "form.fill",
+      "status": "ok",
+      "seconds": 2.454,
+      "note": null
+    },
+    {
+      "key": "form.submit",
+      "status": "ok",
+      "seconds": 0.672,
+      "note": null
+    },
+    {
+      "key": "document.capture",
+      "status": "ok",
+      "seconds": 2.701,
+      "note": null
+    },
+    {
+      "key": "cleanup.draft",
+      "status": "ok",
+      "seconds": 2.748,
+      "note": null
+    }
+  ],
+  "total_seconds": 15.987
+}
