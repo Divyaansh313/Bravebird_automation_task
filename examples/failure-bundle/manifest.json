@@ -1,8 +1,8 @@
 {
-  "run_id": "2026-10-30T02-26-50",
+  "run_id": "2026-10-30T02-41-59",
   "portal": "github",
-  "started_at": "2026-10-29T20:56:50.658+00:00",
-  "finished_at": "2026-10-29T20:57:38.445+00:00",
+  "started_at": "2026-10-29T21:11:59.715+00:00",
+  "finished_at": "2026-10-29T21:12:48.419+00:00",
   "status": "failed",
   "session": "reused",
   "inputs": {
@@ -28,47 +28,47 @@
   "pages_visited": [
     {
       "url": "https://github.com/[REDACTED]/bravebird-portal-sandbox",
-      "at": "2026-10-29T20:56:51.651+00:00"
+      "at": "2026-10-29T21:12:01.039+00:00"
     },
     {
       "url": "https://github.com/[REDACTED]/bravebird-portal-sandbox/releases",
-      "at": "2026-10-29T20:56:53.396+00:00"
+      "at": "2026-10-29T21:12:03.153+00:00"
     },
     {
       "url": "https://github.com/[REDACTED]/bravebird-portal-sandbox/releases/new",
-      "at": "2026-10-29T20:56:54.298+00:00"
+      "at": "2026-10-29T21:12:04.055+00:00"
     },
     {
-      "url": "https://github.com/[REDACTED]/bravebird-portal-sandbox/releases/edit/untagged-c482dc959fe2d713fcf3",
-      "at": "2026-10-29T20:56:57.489+00:00"
+      "url": "https://github.com/[REDACTED]/bravebird-portal-sandbox/releases/edit/untagged-e296e903c83f422fbcf2",
+      "at": "2026-10-29T21:12:07.333+00:00"
     },
     {
       "url": "https://github.com/[REDACTED]/bravebird-portal-sandbox/releases",
-      "at": "2026-10-29T20:56:58.431+00:00"
+      "at": "2026-10-29T21:12:08.202+00:00"
     },
     {
       "url": "https://github.com/[REDACTED]/bravebird-portal-sandbox/releases/tag/v1.0.0",
-      "at": "2026-10-29T20:56:59.179+00:00"
+      "at": "2026-10-29T21:12:08.867+00:00"
     },
     {
       "url": "https://github.com/[REDACTED]/bravebird-portal-sandbox/releases",
-      "at": "2026-10-29T20:57:11.150+00:00"
+      "at": "2026-10-29T21:12:20.738+00:00"
     },
     {
       "url": "https://github.com/[REDACTED]/bravebird-portal-sandbox/releases/tag/v1.0.0",
-      "at": "2026-10-29T20:57:12.019+00:00"
+      "at": "2026-10-29T21:12:21.609+00:00"
     },
     {
       "url": "https://github.com/[REDACTED]/bravebird-portal-sandbox/releases",
-      "at": "2026-10-29T20:57:24.310+00:00"
+      "at": "2026-10-29T21:12:34.843+00:00"
     },
     {
       "url": "https://github.com/[REDACTED]/bravebird-portal-sandbox/releases/tag/v1.0.0",
-      "at": "2026-10-29T20:57:25.157+00:00"
+      "at": "2026-10-29T21:12:35.718+00:00"
     },
     {
       "url": "https://github.com/[REDACTED]/bravebird-portal-sandbox/releases",
-      "at": "2026-10-29T20:57:36.217+00:00"
+      "at": "2026-10-29T21:12:46.439+00:00"
     }
   ],
   "form": {
@@ -79,7 +79,7 @@
     "title": "Bravebird automated draft",
     "notes_chars": 40,
     "label": "Pre-release",
-    "draft_url": "https://github.com/[REDACTED]/bravebird-portal-sandbox/releases/edit/untagged-c482dc959fe2d713fcf3",
+    "draft_url": "https://github.com/[REDACTED]/bravebird-portal-sandbox/releases/edit/untagged-e296e903c83f422fbcf2",
     "cleanup_after_failure": "deleted"
   },
   "files": [],
@@ -110,39 +110,39 @@
     "stage": "document.capture",
     "type": "RetriesExhausted",
     "message": "document.capture: gave up after 3 attempts: Could not resolve 'doc.asset_link' after 6 attempts",
-    "evidence": "runs/2026-10-30T02-26-50/evidence"
+    "evidence": "runs/2026-10-30T02-41-59/evidence"
   },
   "stages": [
     {
       "key": "session.check",
       "status": "ok",
-      "seconds": 0.874,
+      "seconds": 0.903,
       "note": "alive"
     },
     {
       "key": "nav.to_form",
       "status": "ok",
-      "seconds": 2.493,
+      "seconds": 2.73,
       "note": null
     },
     {
       "key": "form.fill",
       "status": "ok",
-      "seconds": 2.625,
+      "seconds": 2.611,
       "note": null
     },
     {
       "key": "form.submit",
       "status": "ok",
-      "seconds": 0.566,
+      "seconds": 0.667,
       "note": null
     },
     {
       "key": "document.capture",
       "status": "failed",
-      "seconds": 37.932,
+      "seconds": 38.396,
       "note": null
     }
   ],
-  "total_seconds": 44.49
+  "total_seconds": 45.307
 }

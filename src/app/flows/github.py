@@ -6,6 +6,7 @@ import asyncio
 import logging
 import re
 import time
+from pathlib import Path
 from urllib.parse import urljoin
 
 from playwright.async_api import Error as PlaywrightError
@@ -440,6 +441,27 @@ async def save_draft(page: Page) -> str:
     return page.url
 
 
+_UNSAFE_CHARS = re.compile(r"[^A-Za-z0-9._ -]")
+
+
+def safe_download_path(downloads_dir: Path, suggested: str | None, *, fallback: str) -> Path:
+    """Server-chosen file name -> path that can only land inside downloads_dir.
+
+    The name comes from the portal (Content-Disposition), so it is untrusted:
+    directory parts are dropped, odd characters replaced, and hidden or empty
+    names fall back to the expected asset name.
+    """
+    name = Path((suggested or "").replace("\\", "/")).name
+    name = _UNSAFE_CHARS.sub("_", name).strip(" .")
+    if not name:
+        name = _UNSAFE_CHARS.sub("_", Path(fallback).name).strip(" .") or "download.bin"
+    root = downloads_dir.resolve()
+    dest = (root / name).resolve()
+    if dest.parent != root:
+        raise FinalInputError(f"Refusing to save a download outside {downloads_dir}")
+    return dest
+
+
 async def capture_asset(page: Page, repo_url: str, tag: str, asset: str,
                         downloads_dir) -> tuple[str, str | None, str]:
     """Releases → <tag> → click asset (native download).
@@ -471,7 +493,7 @@ async def capture_asset(page: Page, repo_url: str, tag: str, asset: str,
     download = await info.value
     if failure := await download.failure():
         raise RetryableError(f"Download failed: {failure}")
-    dest = downloads_dir / download.suggested_filename
+    dest = safe_download_path(downloads_dir, download.suggested_filename, fallback=asset)
     await download.save_as(dest)
     log.info("Downloaded %s", dest.name)
     # Record the portal link, not the signed CDN redirect (its query is a bearer token).

@@ -80,3 +80,20 @@ def test_evidence_html_drops_tokens_and_field_values():
 def test_evidence_html_masks_emails():
     out = scrub_html('<span>contact: someone.name+tag@example.co.uk</span>')
     assert "someone.name" not in out and "example.co.uk" not in out
+
+
+def test_evidence_html_masks_any_nonce_or_token_meta():
+    html = ('<meta name="fetch-nonce" content="v2:abcdef12-3456">'
+            '<meta name="some-new-session-token" content="zzz999">'
+            '<meta name="viewport" content="width=device-width">')
+    out = scrub_html(html)
+    assert "abcdef12" not in out and "zzz999" not in out
+    assert "width=device-width" in out  # harmless metadata is kept
+
+
+def test_evidence_html_masks_numeric_account_and_repo_ids():
+    html = ('<img src="https://avatars.githubusercontent.com/u/46771398?v=4">'
+            '<meta name="hovercard-subject-tag" content="repository:1438910902">'
+            '<div data-upload-repository-id="1438910902"></div>')
+    out = scrub_html(html)
+    assert "46771398" not in out and "1438910902" not in out
