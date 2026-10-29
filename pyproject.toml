@@ -12,6 +12,7 @@ dependencies = [
 
 [project.scripts]
 bravebird = "app.cli:main"
+bravebird-offline = "app.offline:main"
 
 [build-system]
 requires = ["hatchling"]
