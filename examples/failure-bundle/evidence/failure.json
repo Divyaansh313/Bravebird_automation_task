@@ -1,0 +1,72 @@
+{
+  "stage": "document.capture",
+  "error": "RetriesExhausted",
+  "message": "document.capture: gave up after 3 attempts: Could not resolve 'doc.asset_link' after 6 attempts",
+  "root_cause": "ResolveError",
+  "retryable": true,
+  "url": "https://github.com/[REDACTED]/bravebird-portal-sandbox/releases/tag/v1.0.0",
+  "retry_history": [
+    {
+      "stage": "document.capture",
+      "attempt": 1,
+      "error": "ResolveError",
+      "retryable": true,
+      "message": "Could not resolve 'doc.asset_link' after 6 attempts"
+    },
+    {
+      "stage": "document.capture",
+      "attempt": 2,
+      "error": "ResolveError",
+      "retryable": true,
+      "message": "Could not resolve 'doc.asset_link' after 6 attempts"
+    },
+    {
+      "stage": "document.capture",
+      "attempt": 3,
+      "error": "ResolveError",
+      "retryable": true,
+      "message": "Could not resolve 'doc.asset_link' after 6 attempts"
+    }
+  ],
+  "resolver": {
+    "target": "doc.asset_link",
+    "attempts": [
+      {
+        "strategy": "role",
+        "query": "role=link name='__bravebird_broken__'",
+        "frame": "main",
+        "result": "none"
+      },
+      {
+        "strategy": "label",
+        "query": "label='__bravebird_broken__'",
+        "frame": "main",
+        "result": "none"
+      },
+      {
+        "strategy": "label",
+        "query": "placeholder='__bravebird_broken__'",
+        "frame": "main",
+        "result": "none"
+      },
+      {
+        "strategy": "near_text",
+        "query": "near '__bravebird_broken__' -> a",
+        "frame": "main",
+        "result": "none"
+      },
+      {
+        "strategy": "structure",
+        "query": "form #__bravebird_broken__",
+        "frame": "main",
+        "result": "none"
+      },
+      {
+        "strategy": "css",
+        "query": "#__bravebird_broken__",
+        "frame": "main",
+        "result": "none"
+      }
+    ]
+  }
+}

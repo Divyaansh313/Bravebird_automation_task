@@ -1,0 +1,148 @@
+{
+  "run_id": "2026-10-30T02-26-50",
+  "portal": "github",
+  "started_at": "2026-10-29T20:56:50.658+00:00",
+  "finished_at": "2026-10-29T20:57:38.445+00:00",
+  "status": "failed",
+  "session": "reused",
+  "inputs": {
+    "portal": "github",
+    "base_url": "https://github.com",
+    "repo": "[REDACTED]/bravebird-portal-sandbox",
+    "form": {
+      "tag": "v2.0.0-rc1",
+      "target": "staging",
+      "title": "Bravebird automated draft",
+      "notes": "Drafted by the Bravebird automation run.",
+      "label": "Pre-release",
+      "keep_draft": false
+    },
+    "document": {
+      "release_tag": "v1.0.0",
+      "asset_name": "statement-v1.0.0.pdf"
+    },
+    "headless": true,
+    "state_dir": "state",
+    "output_dir": "runs"
+  },
+  "pages_visited": [
+    {
+      "url": "https://github.com/[REDACTED]/bravebird-portal-sandbox",
+      "at": "2026-10-29T20:56:51.651+00:00"
+    },
+    {
+      "url": "https://github.com/[REDACTED]/bravebird-portal-sandbox/releases",
+      "at": "2026-10-29T20:56:53.396+00:00"
+    },
+    {
+      "url": "https://github.com/[REDACTED]/bravebird-portal-sandbox/releases/new",
+      "at": "2026-10-29T20:56:54.298+00:00"
+    },
+    {
+      "url": "https://github.com/[REDACTED]/bravebird-portal-sandbox/releases/edit/untagged-c482dc959fe2d713fcf3",
+      "at": "2026-10-29T20:56:57.489+00:00"
+    },
+    {
+      "url": "https://github.com/[REDACTED]/bravebird-portal-sandbox/releases",
+      "at": "2026-10-29T20:56:58.431+00:00"
+    },
+    {
+      "url": "https://github.com/[REDACTED]/bravebird-portal-sandbox/releases/tag/v1.0.0",
+      "at": "2026-10-29T20:56:59.179+00:00"
+    },
+    {
+      "url": "https://github.com/[REDACTED]/bravebird-portal-sandbox/releases",
+      "at": "2026-10-29T20:57:11.150+00:00"
+    },
+    {
+      "url": "https://github.com/[REDACTED]/bravebird-portal-sandbox/releases/tag/v1.0.0",
+      "at": "2026-10-29T20:57:12.019+00:00"
+    },
+    {
+      "url": "https://github.com/[REDACTED]/bravebird-portal-sandbox/releases",
+      "at": "2026-10-29T20:57:24.310+00:00"
+    },
+    {
+      "url": "https://github.com/[REDACTED]/bravebird-portal-sandbox/releases/tag/v1.0.0",
+      "at": "2026-10-29T20:57:25.157+00:00"
+    },
+    {
+      "url": "https://github.com/[REDACTED]/bravebird-portal-sandbox/releases",
+      "at": "2026-10-29T20:57:36.217+00:00"
+    }
+  ],
+  "form": {
+    "tag": "v2.0.0-rc1",
+    "tag_mode": "new",
+    "target_shown": true,
+    "target": "staging",
+    "title": "Bravebird automated draft",
+    "notes_chars": 40,
+    "label": "Pre-release",
+    "draft_url": "https://github.com/[REDACTED]/bravebird-portal-sandbox/releases/edit/untagged-c482dc959fe2d713fcf3",
+    "cleanup_after_failure": "deleted"
+  },
+  "files": [],
+  "retries": [
+    {
+      "stage": "document.capture",
+      "attempt": 1,
+      "error": "ResolveError",
+      "retryable": true,
+      "message": "Could not resolve 'doc.asset_link' after 6 attempts"
+    },
+    {
+      "stage": "document.capture",
+      "attempt": 2,
+      "error": "ResolveError",
+      "retryable": true,
+      "message": "Could not resolve 'doc.asset_link' after 6 attempts"
+    },
+    {
+      "stage": "document.capture",
+      "attempt": 3,
+      "error": "ResolveError",
+      "retryable": true,
+      "message": "Could not resolve 'doc.asset_link' after 6 attempts"
+    }
+  ],
+  "error": {
+    "stage": "document.capture",
+    "type": "RetriesExhausted",
+    "message": "document.capture: gave up after 3 attempts: Could not resolve 'doc.asset_link' after 6 attempts",
+    "evidence": "runs/2026-10-30T02-26-50/evidence"
+  },
+  "stages": [
+    {
+      "key": "session.check",
+      "status": "ok",
+      "seconds": 0.874,
+      "note": "alive"
+    },
+    {
+      "key": "nav.to_form",
+      "status": "ok",
+      "seconds": 2.493,
+      "note": null
+    },
+    {
+      "key": "form.fill",
+      "status": "ok",
+      "seconds": 2.625,
+      "note": null
+    },
+    {
+      "key": "form.submit",
+      "status": "ok",
+      "seconds": 0.566,
+      "note": null
+    },
+    {
+      "key": "document.capture",
+      "status": "failed",
+      "seconds": 37.932,
+      "note": null
+    }
+  ],
+  "total_seconds": 44.49
+}
