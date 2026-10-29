@@ -6,13 +6,14 @@ import asyncio
 import logging
 import re
 import time
+from urllib.parse import urljoin
 
 from playwright.async_api import Error as PlaywrightError
 from playwright.async_api import Page
 from playwright.async_api import TimeoutError as PlaywrightTimeoutError
 
 from ..config import Credentials
-from ..errors import AuthError, RetryableError, TwoFactorError
+from ..errors import AuthError, FinalInputError, RetryableError, TwoFactorError
 from ..otp import Challenge, CodeProvider
 from ..resolver import Target, exists, resolve
 
@@ -204,3 +205,297 @@ async def _two_factor(page: Page, provider: CodeProvider, max_attempts: int = 2)
 
     raise TwoFactorError(f"2FA code rejected {max_attempts} times")
 
+
+# =============================================================================
+# Navigation → form → document
+# =============================================================================
+
+REPO_RELEASES_LINK = Target(
+    key="nav.releases",
+    role="link", name="Releases", exact=True,
+    near_text=("Releases",), near_tag="a",
+    structure=('a[href$="/releases"]',),
+    css=(".BorderGrid a[href$='/releases']",),
+)
+DRAFT_NEW_LINK = Target(
+    key="nav.draft_new",
+    role="link", name="Draft a new release", exact=True,
+    structure=('a[href$="/releases/new"]',),
+    css=("a.btn[href$='/releases/new']",),
+)
+FORM_RELEASES_LINK = Target(  # breadcrumb back to the list from the form
+    key="nav.form_to_releases",
+    role="link", name="Releases", exact=True,
+    structure=('main a[href$="/releases"]',),
+)
+TAG_BUTTON = Target(
+    key="form.tag.open",
+    role="button", name=re.compile(r"\bTag:", re.IGNORECASE),  # unanchored: survives reorder
+    structure=('main [aria-haspopup]:has-text("Tag:")',
+               'main :is(button, [role="button"]):has-text("Tag:")'),
+)
+TAG_FILTER = Target(
+    key="form.tag.filter",
+    role="textbox", name="Filter tags", exact=True,
+    labels=("Search or create a new tag",),
+    structure=('[role="dialog"] input[type="text"]',),
+)
+CREATE_TAG_BUTTON = Target(
+    key="form.tag.create",
+    role="button", name="Create new tag", exact=True,
+    structure=('[role="dialog"] button:has-text("Create new tag")',),
+)
+CREATE_TAG_CONFIRM = Target(
+    key="form.tag.confirm",
+    role="button", name="Create", exact=True,
+    structure=('[role="dialog"]:has-text("Create new tag") button:text-is("Create")',),
+)
+TARGET_BUTTON = Target(  # the dependent field: only rendered for a NEW tag
+    key="form.target.open",
+    role="button", name=re.compile(r"\bTarget:", re.IGNORECASE),  # GitHub renders a <summary>
+    structure=('main [role="group"] :is(button, summary, [role="button"]):has-text("Target:")',
+               'details:has([data-menu-button]) > summary:has-text("Target:")'),
+)
+BRANCH_FILTER = Target(
+    key="form.target.filter",
+    role="textbox", name="Filter branches", exact=True,
+    labels=("Filter branches…",),
+)
+TITLE = Target(
+    key="form.title",
+    role="textbox", name="Enter release title", exact=True,
+    labels=("Title", re.compile(r"release title", re.IGNORECASE)),
+    near_text=("Release title",),
+    structure=('main form input[type="text"][placeholder="Title"]',),
+    css=("#release_name", 'input[name="release[name]"]'),
+)
+NOTES = Target(
+    key="form.notes",
+    role="textbox", name="Release description", exact=True,
+    labels=(re.compile(r"release description", re.IGNORECASE),),
+    near_text=("Release description",), near_tag="textarea",
+    structure=("main form textarea",),
+    css=("#release_body", 'textarea[name="release[body]"]'),
+)
+SAVE_DRAFT = Target(
+    key="form.save_draft",
+    role="button", name="Save draft", exact=True,
+    structure=('main form button:has-text("Save draft")',),
+    css=("button.js-save-draft",),
+)
+DUPLICATE_TAG_TEXT = re.compile(r"duplicate tag name", re.IGNORECASE)
+
+
+def _option(key: str, role: str, name: str) -> Target:
+    return Target(key=key, role=role, name=name, exact=True,
+                  structure=(f'[role="{role}"]:text-is("{name}")',))
+
+
+def release_link(tag: str) -> Target:
+    return Target(
+        key="doc.release_link",
+        role="link", name=tag, exact=True,
+        structure=(f'a[href$="/releases/tag/{tag}"]',),
+    )
+
+
+def asset_link(tag: str, asset: str) -> Target:
+    return Target(
+        key="doc.asset_link",
+        role="link", name=asset, exact=True,
+        near_text=(asset,), near_tag="a",
+        structure=(f'a[href$="/releases/download/{tag}/{asset}"]',),
+        css=(f'a[href*="/download/"][href$="/{asset}"]',),
+    )
+
+
+def delete_button(title: str, slug: str) -> Target:
+    """Delete button of one specific release.
+
+    Titles can repeat (a leftover draft from an earlier failed run), so the
+    role match may be ambiguous; the resolver then moves on to the structural
+    selector scoped to this draft's own <section id="release-<slug>">.
+    """
+    scope = f'section[id="release-{slug}"]'
+    return Target(
+        key="cleanup.delete",
+        role="button", name=f"Delete: {title}", exact=True,
+        structure=(f'{scope} button[data-show-dialog-id^="delete-release"]',
+                   f'{scope} :is(button, [role="button"])[aria-label^="Delete"]'),
+        css=(f'{scope} button.Button--danger',),
+    )
+
+
+DELETE_CONFIRM = Target(
+    key="cleanup.confirm",
+    role="button", name="Delete this release", exact=True,
+    structure=('[role="dialog"] button:has-text("Delete this release")',),
+)
+
+
+def _picker_value(text: str, prefix: str) -> str:
+    """'Target: staging' -> 'staging', whatever order the pieces render in."""
+    return " ".join(text.replace(prefix, " ").split())
+
+
+async def _click(page: Page, target: Target, **kw) -> None:
+    await (await resolve(page, target, **kw)).locator.click()
+
+
+async def _settle(page: Page) -> None:
+    await page.wait_for_load_state("domcontentloaded")
+
+
+async def session_alive(page: Page, repo_url: str) -> bool:
+    """Positive check, not just "did we get redirected to /login".
+
+    Alive only if GitHub renders a signed-in user AND the private repo page
+    loads (logged out, a private repo is a 404, not a redirect).
+    """
+    response = await page.goto(repo_url, wait_until="domcontentloaded")
+    user = await logged_in_user(page)
+    status = response.status if response else 0
+    alive = bool(user) and status == 200 and "/login" not in page.url
+    log.info("Session check: signed_in=%s status=%s", bool(user), status)
+    return alive
+
+
+async def navigate_to_form(page: Page, repo_url: str) -> None:
+    """repo page → Releases → Draft a new release, by clicking like a user."""
+    if page.url.rstrip("/") != repo_url.rstrip("/"):
+        await page.goto(repo_url, wait_until="domcontentloaded")
+    if await page.title() and "Page not found" in await page.title():
+        raise AuthError(f"Repository not reachable with this account: {repo_url}")
+    await _click(page, REPO_RELEASES_LINK)
+    await page.wait_for_url(re.compile(r"/releases/?(\?.*)?$"), timeout=20_000)
+    await _click(page, DRAFT_NEW_LINK)
+    await page.wait_for_url(re.compile(r"/releases/new"), timeout=20_000)
+    await _settle(page)
+
+
+async def fill_release_form(page: Page, form) -> dict:
+    """Fill the draft form. Returns what was filled, for the manifest.
+
+    Dependency: the Target branch picker exists only when the tag is new.
+    An existing tag hides it and turns the form into "duplicate tag", which
+    is a final input error rather than something to retry.
+    """
+    filled: dict = {"tag": form.tag}
+
+    await _click(page, TAG_BUTTON)
+    await (await resolve(page, TAG_FILTER)).locator.fill(form.tag)
+    await asyncio.sleep(0.6)  # list filters as you type
+    if await exists(page, _option("form.tag.existing", "menuitemradio", form.tag), timeout=1.0):
+        raise FinalInputError(
+            f"Tag {form.tag!r} already exists; the form needs a new tag "
+            "(the Target field only appears for new tags)")
+    await _click(page, CREATE_TAG_BUTTON)
+    await _click(page, CREATE_TAG_CONFIRM)
+    filled["tag_mode"] = "new"
+
+    # Dependent field: wait for Target to appear because the tag is new.
+    target_btn = await resolve(page, TARGET_BUTTON, timeout=10)
+    filled["target_shown"] = True
+    if form.target:
+        current = _picker_value(await target_btn.locator.inner_text(), "Target:")
+        if current != form.target:
+            await target_btn.locator.click()
+            branch = _option("form.target.branch", "menuitemradio", form.target)
+            if not await exists(page, branch, timeout=3):
+                # Long branch lists are paged: filter, then let the list settle.
+                await (await resolve(page, BRANCH_FILTER)).locator.fill(form.target)
+                await asyncio.sleep(0.8)
+                if not await exists(page, branch, timeout=5):
+                    raise FinalInputError(f"Branch {form.target!r} does not exist")
+            await _click(page, branch)  # selecting closes the menu; Escape would cancel it
+
+        async def target_value(p: Page) -> str:
+            btn = await resolve(p, TARGET_BUTTON)
+            now = _picker_value(await btn.locator.inner_text(), "Target:")
+            return now if now == form.target else ""
+        filled["target"] = await _wait_for(page, target_value, timeout=5,
+                                           what=f"Target to show {form.target!r}")
+
+    await (await resolve(page, TITLE)).locator.fill(form.title)
+    filled["title"] = form.title
+    if form.notes:
+        await (await resolve(page, NOTES)).locator.fill(form.notes)
+        filled["notes_chars"] = len(form.notes)
+
+    label = _option("form.label", "radio", form.label)
+    await (await resolve(page, label)).locator.check()
+    filled["label"] = form.label
+
+    if await page.get_by_text(DUPLICATE_TAG_TEXT).filter(visible=True).count():
+        raise FinalInputError(f"Portal reports duplicate tag {form.tag!r}")
+    return filled
+
+
+async def save_draft(page: Page) -> str:
+    """Submit as draft. Returns the draft's edit URL."""
+    await _click(page, SAVE_DRAFT)
+    await page.wait_for_url(re.compile(r"/releases/edit/"), timeout=30_000)
+    await _settle(page)
+    log.info("Draft saved")
+    return page.url
+
+
+async def capture_asset(page: Page, repo_url: str, tag: str, asset: str,
+                        downloads_dir) -> tuple[str, str | None, str]:
+    """Releases → <tag> → click asset (native download).
+
+    Returns (saved path, sha256 digest shown by the portal, source URL).
+    """
+    if not re.search(r"/releases/?(\?.*)?$", page.url):
+        if "/releases/" in page.url and await exists(page, FORM_RELEASES_LINK, timeout=2):
+            await _click(page, FORM_RELEASES_LINK)
+        else:
+            await page.goto(f"{repo_url}/releases", wait_until="domcontentloaded")
+        await page.wait_for_url(re.compile(r"/releases/?(\?.*)?$"), timeout=20_000)
+
+    await _click(page, release_link(tag))
+    await page.wait_for_url(re.compile(rf"/releases/tag/{re.escape(tag)}$"), timeout=20_000)
+    await _settle(page)
+
+    link = (await resolve(page, asset_link(tag, asset))).locator
+    expected = None
+    try:
+        row = await link.locator("xpath=ancestor::li[1]").inner_text(timeout=2_000)
+        if m := re.search(r"sha256:([0-9a-f]{64})", row):
+            expected = m.group(1)
+    except PlaywrightError:
+        log.info("No digest shown for %s", asset)
+
+    async with page.expect_download(timeout=60_000) as info:
+        await link.click()
+    download = await info.value
+    if failure := await download.failure():
+        raise RetryableError(f"Download failed: {failure}")
+    dest = downloads_dir / download.suggested_filename
+    await download.save_as(dest)
+    log.info("Downloaded %s", dest.name)
+    # Record the portal link, not the signed CDN redirect (its query is a bearer token).
+    href = await link.get_attribute("href") or ""
+    return str(dest), expected, urljoin(page.url, href)
+
+
+def draft_slug(draft_url: str) -> str:
+    """.../releases/edit/untagged-7ced8d22 -> untagged-7ced8d22"""
+    return draft_url.rstrip("/").rsplit("/", 1)[-1]
+
+
+async def delete_draft(page: Page, repo_url: str, title: str, draft_url: str) -> None:
+    """Remove the draft this run created (confirmation dialog quirk)."""
+    if not re.search(r"/releases/?(\?.*)?$", page.url):
+        await page.goto(f"{repo_url}/releases", wait_until="domcontentloaded")
+    btn = await resolve(page, delete_button(title, draft_slug(draft_url)))
+    if btn.strategy != "structure":
+        # A unique role match is fine only if it sits inside this draft's section.
+        inside = await btn.locator.evaluate(
+            "(el, id) => !!el.closest('[id=\"' + id + '\"]')", f"release-{draft_slug(draft_url)}")
+        if not inside:
+            raise FinalInputError("Delete button found, but not for this run's draft")
+    await btn.locator.click()
+    await _click(page, DELETE_CONFIRM)
+    await page.wait_for_url(re.compile(r"/releases/?(\?.*)?$"), timeout=20_000)
+    log.info("Draft deleted")
