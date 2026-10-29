@@ -1,0 +1,18 @@
+# Secrets and session state — never commit
+.env
+state/
+*.storage.json
+
+# Run outputs (sample run + failure bundle are committed separately under examples/)
+runs/
+downloads/
+
+# Python
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+
+# OS
+.DS_Store
