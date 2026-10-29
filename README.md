@@ -47,7 +47,7 @@ dev: `pytest`, `pytest-asyncio`, `ruff`.
 curl -LsSf https://astral.sh/uv/install.sh | sh && export PATH="$HOME/.local/bin:$PATH"
 
 uv sync && uv run playwright install chromium
-cp .env.example .env    # then fill it in
+cp .env.example .env && chmod 600 .env    # then fill it in (owner-only: it holds both factors)
 ```
 
 ## Environment variables
