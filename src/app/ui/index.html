@@ -1,0 +1,275 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bravebird Runner</title>
+<style>
+  :root {
+    --bg: #f6f7f9; --panel: #ffffff; --text: #1d2330; --muted: #667085; --line: #e4e7ec;
+    --accent: #3b5bdb; --accent-text: #ffffff;
+    --ok: #12805c; --ok-bg: #e3f5ec; --bad: #c4320a; --bad-bg: #fdece6;
+    --run: #3b5bdb; --run-bg: #e8edff; --wait: #8a6100; --wait-bg: #fdf3d7;
+    --human: #7a2fb5; --human-bg: #f3e8fd; --idle: #475467; --idle-bg: #eef0f3;
+    --bar: #9db0f5;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #11141a; --panel: #191d25; --text: #e6e9ef; --muted: #98a2b3; --line: #2a303b;
+      --accent: #7b93ff; --accent-text: #0d1020;
+      --ok: #4ccf98; --ok-bg: #12301f; --bad: #ff8a65; --bad-bg: #3a1a12;
+      --run: #9aaeff; --run-bg: #1d2647; --wait: #f2c14e; --wait-bg: #3a2f10;
+      --human: #d4a6ff; --human-bg: #2e1c42; --idle: #b0b8c6; --idle-bg: #262b35;
+      --bar: #4d63c4;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text);
+         font: 14px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+  header { display: flex; align-items: baseline; gap: 16px; flex-wrap: wrap;
+           padding: 20px 24px 8px; max-width: 1200px; margin: 0 auto; }
+  h1 { font-size: 20px; margin: 0; }
+  h2 { font-size: 15px; margin: 0 0 12px; }
+  .muted { color: var(--muted); }
+  main { max-width: 1200px; margin: 0 auto; padding: 8px 24px 40px;
+         display: grid; grid-template-columns: 340px 1fr; gap: 16px; }
+  @media (max-width: 900px) { main { grid-template-columns: 1fr; padding: 8px 16px 32px; }
+                              header { padding: 16px 16px 4px; } }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px;
+          padding: 16px; min-width: 0; }
+  label { display: block; font-weight: 600; margin: 12px 0 4px; font-size: 13px; }
+  select, input[type=text] { width: 100%; padding: 8px; border: 1px solid var(--line);
+          border-radius: 6px; background: var(--bg); color: var(--text); font: inherit; }
+  .check { display: flex; gap: 8px; align-items: center; font-weight: 400; margin-top: 12px; }
+  .preview { margin-top: 10px; font-size: 12px; background: var(--bg); border-radius: 6px;
+             padding: 8px 10px; border: 1px solid var(--line); }
+  .preview div { display: flex; justify-content: space-between; gap: 8px; }
+  .preview span:last-child { font-family: ui-monospace, Menlo, monospace; text-align: right;
+                             overflow-wrap: anywhere; }
+  .buttons { display: flex; gap: 8px; margin-top: 16px; flex-wrap: wrap; }
+  button { padding: 8px 14px; border-radius: 6px; border: 1px solid var(--line);
+           background: var(--panel); color: var(--text); font: inherit; cursor: pointer; }
+  button.primary { background: var(--accent); color: var(--accent-text); border-color: var(--accent); }
+  button:disabled { opacity: .5; cursor: default; }
+  .msg { margin-top: 10px; font-size: 13px; min-height: 1.4em; }
+  .stats { display: flex; gap: 8px; flex-wrap: wrap; }
+  .table-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; }
+  th, td { text-align: left; padding: 8px 6px; border-bottom: 1px solid var(--line);
+           vertical-align: middle; white-space: nowrap; }
+  th { font-size: 12px; color: var(--muted); font-weight: 600; }
+  tr.row { cursor: pointer; }
+  tr.row:hover td { background: var(--bg); }
+  tr.selected td { background: var(--run-bg); }
+  .mono { font-family: ui-monospace, Menlo, monospace; font-size: 12px; }
+  .pill { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 12px;
+          font-weight: 600; }
+  .s-ok { color: var(--ok); background: var(--ok-bg); }
+  .s-failed { color: var(--bad); background: var(--bad-bg); }
+  .s-running { color: var(--run); background: var(--run-bg); }
+  .s-queued { color: var(--wait); background: var(--wait-bg); }
+  .s-needs_human { color: var(--human); background: var(--human-bg); }
+  .s-cancelled { color: var(--idle); background: var(--idle-bg); }
+  a { color: var(--accent); }
+  .empty { padding: 24px; text-align: center; color: var(--muted); }
+  #detail { margin-top: 16px; }
+  .stage { display: grid; grid-template-columns: 150px 1fr 60px; gap: 8px; align-items: center;
+           font-size: 12px; margin: 4px 0; }
+  .track { background: var(--bg); border-radius: 4px; height: 10px; overflow: hidden; }
+  .fill { background: var(--bar); height: 100%; border-radius: 4px; }
+  .fill.failed { background: var(--bad); }
+  .stage-note { font-size: 11px; color: var(--muted); margin: -2px 0 4px 158px; }
+  @media (max-width: 600px) { .stage { grid-template-columns: 110px 1fr 52px; }
+                              .stage-note { margin-left: 118px; } }
+  .kv { display: grid; grid-template-columns: 140px 1fr; gap: 4px 12px; font-size: 13px;
+        margin-bottom: 12px; }
+  .kv span:nth-child(odd) { color: var(--muted); }
+  .kv span:nth-child(even) { overflow-wrap: anywhere; }
+  ol.pages { margin: 4px 0 0; padding-left: 20px; font-size: 12px; }
+  ol.pages li { overflow-wrap: anywhere; }
+  .links { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 12px; font-size: 13px; }
+  img.shot { max-width: 100%; border: 1px solid var(--line); border-radius: 6px; margin-top: 12px; }
+  pre.err { white-space: pre-wrap; background: var(--bad-bg); color: var(--bad); padding: 8px;
+            border-radius: 6px; font-size: 12px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Bravebird Runner</h1>
+  <span class="muted" id="health">connecting…</span>
+</header>
+<main>
+  <section class="card">
+    <h2>Queue a job</h2>
+    <label for="input">Input file</label>
+    <select id="input"></select>
+    <div class="preview" id="preview"></div>
+    <label for="break">Break a step (failure demo)</label>
+    <select id="break"><option value="">None</option></select>
+    <label class="check"><input type="checkbox" id="wrong"> Send a wrong 2FA code first</label>
+    <label for="label">Label (optional)</label>
+    <input type="text" id="label" maxlength="80" placeholder="e.g. statement v1.0.0">
+    <div class="buttons">
+      <button class="primary" id="submit">Queue job</button>
+      <button id="submitAll" title="Queue every input file at once">Queue all inputs</button>
+    </div>
+    <div class="msg" id="msg" role="status"></div>
+  </section>
+
+  <section class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap">
+      <h2 style="margin:0">Jobs</h2>
+      <div class="stats" id="stats"></div>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Job</th><th>Label</th><th>Status</th><th>Session</th>
+          <th>Duration</th><th>Document</th></tr></thead>
+        <tbody id="jobs"></tbody>
+      </table>
+    </div>
+    <div id="detail"></div>
+  </section>
+</main>
+<script>
+const BREAKABLE = ["login.username","login.password","login.submit","2fa.code","nav.releases",
+  "nav.draft_new","form.tag.open","form.tag.filter","form.target.open","form.title",
+  "form.notes","form.save_draft","doc.release_link","doc.asset_link","cleanup.delete"];
+let inputs = [], selected = null, lastJobs = [], detailStatus = null;
+
+const $ = (id) => document.getElementById(id);
+const esc = (v) => String(v ?? "").replace(/[&<>"']/g,
+  (c) => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+
+function token() { try { return localStorage.getItem("bravebird_token") || ""; } catch { return ""; } }
+async function api(path, opts = {}) {
+  const headers = {"Content-Type": "application/json", ...(opts.headers || {})};
+  if (token()) headers.Authorization = "Bearer " + token();
+  const res = await fetch(path, {...opts, headers});
+  if (res.status === 401) {
+    const t = prompt("This server needs an API token:");
+    if (t) { try { localStorage.setItem("bravebird_token", t); } catch {} return api(path, opts); }
+  }
+  if (!res.ok) {
+    let detail = res.statusText;
+    try { const j = await res.json(); detail = typeof j.detail === "string" ? j.detail : JSON.stringify(j.detail); } catch {}
+    throw new Error(detail);
+  }
+  return res.headers.get("content-type")?.includes("json") ? res.json() : res.text();
+}
+function fileUrl(path) { return token() ? null : path; }  // token can't ride on <a href>
+
+function seconds(job) {
+  if (!job.started_at) return "";
+  const end = job.finished_at ? new Date(job.finished_at) : new Date();
+  const s = Math.max(0, (end - new Date(job.started_at)) / 1000);
+  return s < 60 ? `${s.toFixed(0)}s` : `${Math.floor(s/60)}m ${Math.round(s%60)}s`;
+}
+
+function renderPreview() {
+  const item = inputs.find((i) => i.name === $("input").value);
+  if (!item) { $("preview").innerHTML = '<span class="muted">No input files found in inputs/</span>'; return; }
+  const i = item.input, rows = [
+    ["repo", i.repo], ["document", `${i.document?.release_tag} / ${i.document?.asset_name}`],
+    ["form tag → target", `${i.form?.tag} → ${i.form?.target ?? "(default)"}`],
+    ["proxy", i.proxy_route ? `route ${i.proxy_route}` : (i.proxy ? i.proxy.server : "direct / env")],
+    ["fingerprint", i.fingerprint ?? "hardened"]];
+  $("preview").innerHTML = rows.map(([k, v]) => `<div><span class="muted">${esc(k)}</span><span>${esc(v)}</span></div>`).join("");
+}
+
+async function loadInputs() {
+  inputs = await api("/api/inputs");
+  $("input").innerHTML = inputs.map((i) => `<option>${esc(i.name)}</option>`).join("");
+  renderPreview();
+}
+
+async function submit(names) {
+  $("msg").textContent = "";
+  const options = {simulate_wrong_code: $("wrong").checked, break_step: $("break").value || null};
+  try {
+    for (const name of names) {
+      await api("/api/jobs", {method: "POST", body: JSON.stringify(
+        {input_file: name, options, label: names.length === 1 ? ($("label").value || null) : null})});
+    }
+    $("msg").textContent = `Queued ${names.length} job${names.length > 1 ? "s" : ""}.`;
+    refresh();
+  } catch (e) { $("msg").textContent = "Could not queue: " + e.message; }
+}
+
+function renderJobs(jobs) {
+  lastJobs = jobs;
+  if (!jobs.length) { $("jobs").innerHTML = '<tr><td colspan="6" class="empty">No jobs yet. Queue one on the left.</td></tr>'; return; }
+  $("jobs").innerHTML = jobs.map((j) => {
+    const files = j.result?.files || [];
+    const doc = files.length
+      ? files.map((f) => { const u = fileUrl(`/api/jobs/${j.id}/files/${encodeURIComponent(f)}`);
+          return u ? `<a href="${esc(u)}" onclick="event.stopPropagation()">${esc(f)}</a>` : esc(f); }).join(", ")
+      : "";
+    return `<tr class="row ${j.id === selected ? "selected" : ""}" data-id="${esc(j.id)}">
+      <td class="mono">${esc(j.id.slice(11))}</td><td>${esc(j.label)}</td>
+      <td><span class="pill s-${esc(j.status)}">${esc(j.status.replace("_", " "))}</span></td>
+      <td>${esc(j.result?.session ?? "")}</td><td>${esc(seconds(j))}</td><td>${doc}</td></tr>`;
+  }).join("");
+  document.querySelectorAll("tr.row").forEach((tr) => tr.onclick = () => { selected = tr.dataset.id; renderJobs(lastJobs); showDetail(selected); });
+}
+
+async function showDetail(id) {
+  const job = lastJobs.find((j) => j.id === id);
+  if (!job) return;
+  detailStatus = job.status;
+  let html = `<h2>Job ${esc(job.id)}</h2>`;
+  if (job.status === "queued") html += `<button id="cancel">Cancel</button>`;
+  if (job.note) html += `<p class="muted">${esc(job.note)}</p>`;
+  let m = null;
+  if (!["queued", "cancelled"].includes(job.status)) { try { m = await api(`/api/jobs/${id}/manifest`); } catch {} }
+  if (m) {
+    const total = Math.max(...m.stages.map((s) => s.seconds || 0), 0.001);
+    html += `<div class="kv">
+      <span>Status</span><span>${esc(m.status)}</span><span>Session</span><span>${esc(m.session)}</span>
+      <span>Browser</span><span>${esc(m.browser?.profile)}${m.browser?.proxy ? " via " + esc(m.browser.proxy) : ""}</span>
+      <span>Total</span><span>${esc(m.total_seconds)}s</span>
+      ${m.form?.target ? `<span>Form</span><span>tag ${esc(m.form.tag)} → target ${esc(m.form.target)} (${esc(m.form.label)})</span>` : ""}
+      ${m.files.map((f) => `<span>File</span><span>${esc(f.name)} · ${esc(f.bytes)} bytes · sha256 ${f.verified ? "verified ✓" : "not verified"}</span>`).join("")}
+      ${m.captcha ? `<span>CAPTCHA</span><span>${esc(m.captcha)}: needs a human</span>` : ""}
+    </div>`;
+    if (m.error) html += `<pre class="err">Failed in ${esc(m.error.stage)} (${esc(m.error.type)})\n${esc(m.error.message)}</pre>`;
+    html += `<h2>Stages</h2>` + m.stages.map((s) => `<div class="stage"><span class="mono">${esc(s.key)}</span>
+      <div class="track"><div class="fill ${s.status === "failed" ? "failed" : ""}" style="width:${Math.max(2, 100 * (s.seconds || 0) / total)}%"></div></div>
+      <span class="mono">${esc((s.seconds ?? 0).toFixed(2))}s</span></div>${s.note ? `<div class="stage-note">${esc(s.note)}</div>` : ""}`).join("");
+    html += `<h2 style="margin-top:12px">Pages visited</h2><ol class="pages">${m.pages_visited.map((p) => `<li class="mono">${esc(p.url)}</li>`).join("")}</ol>`;
+    const links = [];
+    if (fileUrl("x")) {
+      links.push(`<a href="/api/jobs/${esc(id)}/manifest" target="_blank" rel="noopener">manifest.json</a>`);
+      links.push(`<a href="/api/jobs/${esc(id)}/log" target="_blank" rel="noopener">run.log</a>`);
+    }
+    html += `<div class="links">${links.join("")}</div>`;
+    if (m.error && fileUrl("x")) html += `<img class="shot" alt="Redacted failure screenshot" src="/api/jobs/${esc(id)}/evidence/screenshot.png">`;
+  }
+  $("detail").innerHTML = `<div class="card" style="padding:12px 0 0;border:0">${html}</div>`;
+  const c = $("cancel");
+  if (c) c.onclick = async () => { try { await api(`/api/jobs/${id}/cancel`, {method: "POST"}); refresh(); } catch (e) { alert(e.message); } };
+}
+
+async function refresh() {
+  try {
+    const [h, jobs] = await Promise.all([api("/api/health"), api("/api/jobs?limit=50")]);
+    $("health").textContent = `${h.workers} worker(s) · up to ${h.per_portal} per portal${h.auth ? " · token required" : ""}`;
+    const order = ["queued", "running", "ok", "failed", "needs_human", "cancelled"];
+    $("stats").innerHTML = order.filter((s) => h.counts[s]).map((s) => `<span class="pill s-${s}">${h.counts[s]} ${s.replace("_", " ")}</span>`).join("");
+    renderJobs(jobs);
+    if (selected) {
+      const j = jobs.find((x) => x.id === selected);
+      if (j && (j.status !== detailStatus || j.status === "running")) showDetail(selected);
+    }
+  } catch (e) { $("health").textContent = "offline: " + e.message; }
+}
+
+$("break").innerHTML += BREAKABLE.map((b) => `<option>${b}</option>`).join("");
+$("input").onchange = renderPreview;
+$("submit").onclick = () => submit([$("input").value]);
+$("submitAll").onclick = () => submit(inputs.map((i) => i.name));
+loadInputs().then(refresh);
+setInterval(refresh, 2000);
+</script>
+</body>
+</html>
