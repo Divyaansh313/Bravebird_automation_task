@@ -13,8 +13,10 @@ from playwright.async_api import Error as PlaywrightError
 from playwright.async_api import Page
 from playwright.async_api import TimeoutError as PlaywrightTimeoutError
 
+from .. import captcha
 from ..config import Credentials
 from ..errors import AuthError, FinalInputError, RetryableError, TwoFactorError
+from ..fsutil import private_file
 from ..otp import Challenge, CodeProvider
 from ..resolver import Target, exists, resolve
 
@@ -124,8 +126,13 @@ async def _wait_for(page: Page, predicate, *, timeout: float, what: str) -> str:
 
 # --- Login --------------------------------------------------------------------
 
-async def login(page: Page, base_url: str, creds: Credentials, provider: CodeProvider) -> str:
-    """Full login: password, then TOTP with one retry. Returns the signed-in login."""
+async def login(page: Page, base_url: str, creds: Credentials, provider: CodeProvider,
+                on_captcha=None) -> str:
+    """Full login: password, then TOTP with one retry. Returns the signed-in login.
+
+    `on_captcha(page)` is awaited if a CAPTCHA appears after the password step;
+    it either raises (no human available) or returns once a human solved it.
+    """
     await page.goto(f"{base_url}/login", wait_until="domcontentloaded")
 
     if user := await logged_in_user(page):
@@ -145,9 +152,17 @@ async def login(page: Page, base_url: str, creds: Credentials, provider: CodePro
             return "done"
         if await p.get_by_text(BAD_PASSWORD_TEXT).filter(visible=True).count():
             return "bad_password"
+        if await captcha.detect(p):
+            return "captcha"
         return ""
 
     outcome = await _wait_for(page, after_password, timeout=30, what="the post-password page")
+    if outcome == "captcha":
+        if on_captcha is None:
+            raise captcha.CaptchaRequired(await captcha.detect(page) or "unknown", page.url)
+        await on_captcha(page)
+        outcome = await _wait_for(page, after_password, timeout=30,
+                                  what="the page after the CAPTCHA")
     if outcome == "bad_password":
         raise AuthError("Portal rejected the username or password")
     if outcome == "device":
@@ -214,8 +229,7 @@ async def _two_factor(page: Page, provider: CodeProvider, max_attempts: int = 2)
 REPO_RELEASES_LINK = Target(
     key="nav.releases",
     role="link", name="Releases", exact=True,
-    near_text=("Releases",), near_tag="a",
-    structure=('a[href$="/releases"]',),
+    structure=('a[href$="/releases"]',),  # no near_text: the next <a> after it is a release
     css=(".BorderGrid a[href$='/releases']",),
 )
 DRAFT_NEW_LINK = Target(
@@ -233,7 +247,10 @@ TAG_BUTTON = Target(
     key="form.tag.open",
     role="button", name=re.compile(r"\bTag:", re.IGNORECASE),  # unanchored: survives reorder
     structure=('main [aria-haspopup]:has-text("Tag:")',
-               'main :is(button, [role="button"]):has-text("Tag:")'),
+               'main :is(button, [role="button"]):has-text("Tag:")',
+               # wording-independent: survives a copy rewrite
+               '#tag-list [data-testid="anchor-button"][aria-haspopup]'),
+    css=("#ref-picker-releases-tag",),
 )
 TAG_FILTER = Target(
     key="form.tag.filter",
@@ -255,7 +272,9 @@ TARGET_BUTTON = Target(  # the dependent field: only rendered for a NEW tag
     key="form.target.open",
     role="button", name=re.compile(r"\bTarget:", re.IGNORECASE),  # GitHub renders a <summary>
     structure=('main [role="group"] :is(button, summary, [role="button"]):has-text("Target:")',
-               'details:has([data-menu-button]) > summary:has-text("Target:")'),
+               'details:has([data-menu-button]) > summary:has-text("Target:")',
+               # wording-independent: the menu summary in the tag-state container
+               '[data-existing-id] details > summary[aria-haspopup="menu"]'),
 )
 BRANCH_FILTER = Target(
     key="form.target.filter",
@@ -285,6 +304,21 @@ SAVE_DRAFT = Target(
     css=("button.js-save-draft",),
 )
 DUPLICATE_TAG_TEXT = re.compile(r"duplicate tag name", re.IGNORECASE)
+
+
+LABEL_VALUES = {"None": "none", "Pre-release": "prerelease", "Latest": "latest"}
+
+
+def release_label(label: str) -> Target:
+    """Release label radio: by its visible name, or by the form value it submits."""
+    value = LABEL_VALUES[label]
+    return Target(
+        key="form.label",
+        role="radio", name=label, exact=True,
+        labels=(label,),
+        structure=(
+            f'input[type="radio"][name="release[release_label_option]"][value="{value}"]',),
+    )
 
 
 def _option(key: str, role: str, name: str) -> Target:
@@ -352,21 +386,32 @@ async def session_alive(page: Page, repo_url: str) -> bool:
 
     Alive only if GitHub renders a signed-in user AND the private repo page
     loads (logged out, a private repo is a 404, not a redirect).
+
+    A signed-in user who still gets a 404 means the repo in the input is wrong
+    or not shared with this account. That is a final input error: throwing
+    away a working session and logging in again would not fix it. Other
+    statuses (GitHub 5xx, rate limiting) are retryable.
     """
     response = await page.goto(repo_url, wait_until="domcontentloaded")
     user = await logged_in_user(page)
     status = response.status if response else 0
-    alive = bool(user) and status == 200 and "/login" not in page.url
     log.info("Session check: signed_in=%s status=%s", bool(user), status)
-    return alive
+    if not user or "/login" in page.url:
+        return False
+    if status == 200:
+        return True
+    if status == 404:
+        raise FinalInputError(f"Repository not reachable with this account: {repo_url}")
+    raise RetryableError(f"Session check got HTTP {status} for {repo_url}")
 
 
 async def navigate_to_form(page: Page, repo_url: str) -> None:
     """repo page → Releases → Draft a new release, by clicking like a user."""
     if page.url.rstrip("/") != repo_url.rstrip("/"):
         await page.goto(repo_url, wait_until="domcontentloaded")
-    if await page.title() and "Page not found" in await page.title():
-        raise AuthError(f"Repository not reachable with this account: {repo_url}")
+    await page.wait_for_load_state("load")
+    if "Page not found" in await page.title():
+        raise FinalInputError(f"Repository not reachable with this account: {repo_url}")
     await _click(page, REPO_RELEASES_LINK)
     await page.wait_for_url(re.compile(r"/releases/?(\?.*)?$"), timeout=20_000)
     await _click(page, DRAFT_NEW_LINK)
@@ -383,7 +428,13 @@ async def fill_release_form(page: Page, form) -> dict:
     """
     filled: dict = {"tag": form.tag}
 
+    # The pickers are client-side widgets: a click before the page's scripts
+    # have loaded does nothing. Wait for load, and re-click if no dialog opens.
+    await page.wait_for_load_state("load")
     await _click(page, TAG_BUTTON)
+    if not await exists(page, TAG_FILTER, timeout=3):
+        log.info("Tag dialog did not open; clicking again")
+        await _click(page, TAG_BUTTON)
     await (await resolve(page, TAG_FILTER)).locator.fill(form.tag)
     await asyncio.sleep(0.6)  # list filters as you type
     if await exists(page, _option("form.tag.existing", "menuitemradio", form.tag), timeout=1.0):
@@ -423,7 +474,7 @@ async def fill_release_form(page: Page, form) -> dict:
         await (await resolve(page, NOTES)).locator.fill(form.notes)
         filled["notes_chars"] = len(form.notes)
 
-    label = _option("form.label", "radio", form.label)
+    label = release_label(form.label)
     await (await resolve(page, label)).locator.check()
     filled["label"] = form.label
 
@@ -495,6 +546,7 @@ async def capture_asset(page: Page, repo_url: str, tag: str, asset: str,
         raise RetryableError(f"Download failed: {failure}")
     dest = safe_download_path(downloads_dir, download.suggested_filename, fallback=asset)
     await download.save_as(dest)
+    private_file(dest)  # a private statement: owner-only
     log.info("Downloaded %s", dest.name)
     # Record the portal link, not the signed CDN redirect (its query is a bearer token).
     href = await link.get_attribute("href") or ""
@@ -506,18 +558,49 @@ def draft_slug(draft_url: str) -> str:
     return draft_url.rstrip("/").rsplit("/", 1)[-1]
 
 
-async def delete_draft(page: Page, repo_url: str, title: str, draft_url: str) -> None:
-    """Remove the draft this run created (confirmation dialog quirk)."""
-    if not re.search(r"/releases/?(\?.*)?$", page.url):
+async def draft_gone(page: Page, draft_url: str) -> bool:
+    """True if the draft's edit page is a 404, i.e. the draft no longer exists."""
+    response = await page.goto(draft_url, wait_until="domcontentloaded")
+    return response is not None and response.status == 404
+
+
+async def delete_draft(page: Page, repo_url: str, title: str, draft_url: str, *,
+                       check_first: bool = False) -> None:
+    """Remove the draft this run created (confirmation dialog quirk).
+
+    GitHub's release list can lag a few seconds behind a just-saved draft, so
+    always load a fresh list, and reload with a short backoff until this
+    draft's own section appears.
+
+    `check_first` makes a retry idempotent: if an earlier attempt already
+    deleted the draft, its edit page is a 404 and there is nothing to do.
+    """
+    if check_first and await draft_gone(page, draft_url):
+        log.info("Draft already deleted")
+        return
+    slug = draft_slug(draft_url)
+    section = page.locator(f'section[id="release-{slug}"]')
+    for attempt in range(4):
         await page.goto(f"{repo_url}/releases", wait_until="domcontentloaded")
-    btn = await resolve(page, delete_button(title, draft_slug(draft_url)))
+        if await section.count():
+            break
+        log.info("Draft not listed yet (attempt %d); reloading", attempt + 1)
+        await asyncio.sleep(1.5 * (attempt + 1))
+    else:
+        raise RetryableError("This run's draft never appeared in the release list")
+    btn = await resolve(page, delete_button(title, slug))
     if btn.strategy != "structure":
         # A unique role match is fine only if it sits inside this draft's section.
         inside = await btn.locator.evaluate(
-            "(el, id) => !!el.closest('[id=\"' + id + '\"]')", f"release-{draft_slug(draft_url)}")
+            "(el, id) => !!el.closest('[id=\"' + id + '\"]')", f"release-{slug}")
         if not inside:
             raise FinalInputError("Delete button found, but not for this run's draft")
     await btn.locator.click()
     await _click(page, DELETE_CONFIRM)
-    await page.wait_for_url(re.compile(r"/releases/?(\?.*)?$"), timeout=20_000)
+    # We are already on /releases, so waiting for that URL proves nothing.
+    # Wait for this draft's section to go away instead.
+    try:
+        await section.wait_for(state="detached", timeout=20_000)
+    except PlaywrightTimeoutError as exc:
+        raise RetryableError("Draft still listed after confirming the delete") from exc
     log.info("Draft deleted")

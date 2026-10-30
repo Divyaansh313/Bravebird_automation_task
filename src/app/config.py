@@ -6,6 +6,7 @@ import json
 import os
 from pathlib import Path
 from typing import Literal
+from urllib.parse import unquote, urlsplit
 
 from dotenv import load_dotenv
 from pydantic import BaseModel, ConfigDict, Field, SecretStr, ValidationError
@@ -65,19 +66,79 @@ class DocumentInput(BaseModel):
     asset_name: str
 
 
+class ProxyConfig(BaseModel):
+    """Where this run's browser traffic goes. Credentials are redacted."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    server: str = Field(description="e.g. http://proxy.example:8080 or socks5://host:1080")
+    username: str | None = None
+    password: SecretStr | None = None
+    bypass: str | None = Field(default=None, description="Comma-separated hosts to skip")
+
+    def playwright(self) -> dict:
+        out: dict = {"server": self.server}
+        if self.username:
+            out["username"] = self.username
+        if self.password:
+            out["password"] = self.password.get_secret_value()
+        if self.bypass:
+            out["bypass"] = self.bypass
+        return out
+
+    @classmethod
+    def from_url(cls, url: str) -> ProxyConfig:
+        """http://user:pass@host:port -> ProxyConfig (credentials split out)."""
+        parts = urlsplit(url)
+        if not parts.scheme or not parts.hostname:
+            raise ConfigError("Proxy URL must look like scheme://[user:pass@]host:port")
+        server = f"{parts.scheme}://{parts.hostname}" + (f":{parts.port}" if parts.port else "")
+        return cls(server=server, username=unquote(parts.username) if parts.username else None,
+                   password=unquote(parts.password) if parts.password else None)
+
+
 class RunInput(BaseModel):
     """Everything that varies between runs. Changing these needs no code change."""
 
     model_config = ConfigDict(extra="forbid")
 
-    portal: str = "github"
-    base_url: str = "https://github.com"
-    repo: str = Field(description="owner/name of the repository to work in")
+    portal: Literal["github"] = "github"  # also names the state file, so never free text
+    # The run types the account's password and a 2FA code into {base_url}/login,
+    # so it must be an https origin (no path, no plain http).
+    base_url: str = Field(default="https://github.com",
+                          pattern=r"^https://[A-Za-z0-9.-]+(:\d{1,5})?/?$")
+    repo: str = Field(description="owner/name of the repository to work in",
+                      pattern=r"^[A-Za-z0-9_-][A-Za-z0-9_.-]*/[A-Za-z0-9_.-]*[A-Za-z0-9_-][A-Za-z0-9_.-]*$")
     form: FormInput
     document: DocumentInput
     headless: bool = True
     state_dir: Path = Path("state")
     output_dir: Path = Path("runs")
+    proxy: ProxyConfig | None = Field(
+        default=None, description="Per-run proxy (CLI only if it has a password)")
+    proxy_route: str | None = Field(
+        default=None, pattern=r"^[A-Za-z0-9_]{1,32}$",
+        description="Named route: uses env BRAVEBIRD_PROXY_<ROUTE>, keeping credentials "
+                    "out of input files")
+    fingerprint: Literal["hardened", "default"] = "hardened"
+    timezone: str | None = Field(default=None, description="IANA zone, e.g. Asia/Kolkata; "
+                                 "match it to the proxy's exit region")
+    captcha_wait_seconds: int = Field(
+        default=0, ge=0, le=900,
+        description="Headed runs only: wait this long for a human to solve a CAPTCHA")
+
+    def effective_proxy(self) -> ProxyConfig | None:
+        """Routing order: explicit proxy > named route > BRAVEBIRD_PROXY > direct."""
+        if self.proxy:
+            return self.proxy
+        if self.proxy_route:
+            var = f"BRAVEBIRD_PROXY_{self.proxy_route.upper()}"
+            url = os.getenv(var, "").strip()
+            if not url:
+                raise ConfigError(f"proxy_route {self.proxy_route!r} needs env var {var}")
+            return ProxyConfig.from_url(url)
+        env = os.getenv("BRAVEBIRD_PROXY", "").strip()
+        return ProxyConfig.from_url(env) if env else None
 
     @property
     def state_path(self) -> Path:

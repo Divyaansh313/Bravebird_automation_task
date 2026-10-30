@@ -13,7 +13,6 @@ Nothing is written unredacted: every text artifact goes through the redactor.
 
 from __future__ import annotations
 
-import json
 import logging
 import re
 from pathlib import Path
@@ -21,6 +20,7 @@ from pathlib import Path
 from playwright.async_api import Page
 
 from .browser import ConsoleLog
+from .fsutil import private_dir
 from .redact import MASK, redactor
 from .resolver import ResolveError
 
@@ -29,12 +29,24 @@ log = logging.getLogger(__name__)
 _HIDDEN_VALUE = re.compile(r'(<input\b[^>]*type="hidden"[^>]*\bvalue=")[^"]*(")', re.IGNORECASE)
 _HIDDEN_VALUE_REV = re.compile(r'(<input\b[^>]*\bvalue=")[^"]*("[^>]*type="hidden")', re.IGNORECASE)
 _ANY_INPUT_VALUE = re.compile(r'(<(?:input|textarea)\b[^>]*\bvalue=")[^"]*(")', re.IGNORECASE)
-# Known session-bound meta tags, plus any meta whose name looks like a
+# Session-bound meta tags: the known ones, plus any meta whose name looks like a
 # token/nonce/hmac/session value (e.g. fetch-nonce), so new ones are caught too.
-_CSRF_META = re.compile(r'(<meta\b[^>]*name="(?:csrf-token|request-id|html-safe-nonce|'
-                        r'visitor-payload|visitor-hmac|user-login|octolytics-[\w-]+|'
-                        r'[\w:-]*(?:nonce|token|hmac|csrf|session|payload)[\w:-]*)"'
-                        r'[^>]*content=")[^"]*(")', re.IGNORECASE)
+_SENSITIVE_META_NAME = re.compile(
+    r"^(?:csrf-token|request-id|html-safe-nonce|visitor-payload|visitor-hmac|user-login|"
+    r"octolytics-[\w-]+|[\w:-]*(?:nonce|token|hmac|csrf|session|payload)[\w:-]*)$",
+    re.IGNORECASE)
+_META_TAG = re.compile(r"<meta\b[^>]*>", re.IGNORECASE)
+_META_NAME = re.compile(r"""\b(?:name|property|http-equiv)\s*=\s*(["'])(.*?)\1""", re.IGNORECASE)
+_META_CONTENT = re.compile(r"""(\bcontent\s*=\s*)(["'])(.*?)\2""", re.IGNORECASE)
+
+
+def _scrub_meta_tag(m: re.Match[str]) -> str:
+    """Attribute order and quote style vary, so look at each <meta> on its own."""
+    tag = m.group(0)
+    name = _META_NAME.search(tag)
+    if name and _SENSITIVE_META_NAME.match(name.group(2)):
+        tag = _META_CONTENT.sub(lambda c: f"{c.group(1)}{c.group(2)}{MASK}{c.group(2)}", tag)
+    return tag
 
 
 # Numeric account / private-repo ids: avatar URLs (/u/<user id>) and
@@ -49,7 +61,7 @@ def scrub_html(html: str) -> str:
     html = _HIDDEN_VALUE.sub(rf"\1{MASK}\2", html)
     html = _HIDDEN_VALUE_REV.sub(rf"\1{MASK}\2", html)
     html = _ANY_INPUT_VALUE.sub(rf"\1{MASK}\2", html)
-    html = _CSRF_META.sub(rf"\1{MASK}\2", html)
+    html = _META_TAG.sub(_scrub_meta_tag, html)
     html = _EMAIL.sub(MASK, html)
     html = _AVATAR_ID.sub(rf"\1{MASK}", html)
     html = _SUBJECT_ID.sub(rf"\1{MASK}", html)
@@ -70,7 +82,7 @@ def _root_cause(exc: BaseException) -> BaseException:
 async def write_bundle(out: Path, *, page: Page | None, console: ConsoleLog | None,
                        stage: str | None, error: BaseException, retry_events: list[dict],
                        identifiers: list[str]) -> Path:
-    out.mkdir(parents=True, exist_ok=True)
+    private_dir(out)
     cause = _root_cause(error)
     attempts = [a.as_dict() for a in cause.attempts] if isinstance(cause, ResolveError) else []
 
@@ -106,7 +118,7 @@ async def write_bundle(out: Path, *, page: Page | None, console: ConsoleLog | No
         "resolver": {"target": cause.target.key, "attempts": attempts}
         if isinstance(cause, ResolveError) else None,
     }
-    text = redactor.redact(json.dumps(failure, indent=2, default=str))
+    text = redactor.redact_json(failure, indent=2)
     (out / "failure.json").write_text(text + "\n", encoding="utf-8")
     log.error("Evidence bundle written to %s", out)
     return out

@@ -4,15 +4,19 @@ version = "0.1.0"
 description = "Playwright CLI: TOTP login, session reuse, nested form, document capture, JSON manifest"
 requires-python = ">=3.12"
 dependencies = [
+    "fastapi>=0.162.0",
     "playwright>=1.64.1",
     "pydantic>=2.14.2",
     "pyotp>=2.10.0",
     "python-dotenv>=1.2.4",
+    "uvicorn>=0.30",
 ]
 
 [project.scripts]
 bravebird = "app.cli:main"
 bravebird-offline = "app.offline:main"
+bravebird-batch = "app.cli:batch_main"
+bravebird-serve = "app.api:serve_main"
 
 [build-system]
 requires = ["hatchling"]
@@ -23,6 +27,7 @@ packages = ["src/app"]
 
 [dependency-groups]
 dev = [
+    "httpx>=0.28.1",
     "pytest>=9.2.0",
     "pytest-asyncio>=1.4.1",
     "ruff>=0.17.3",
@@ -32,6 +37,7 @@ dev = [
 asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "function"
 testpaths = ["tests"]
+filterwarnings = ["ignore:Using `httpx` with `starlette.testclient`"]
 
 [tool.ruff]
 line-length = 100

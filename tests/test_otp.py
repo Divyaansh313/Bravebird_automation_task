@@ -51,7 +51,8 @@ async def test_simulated_wrong_code_then_real():
     wrong = await provider.get_code(Challenge(attempt=1))
     assert wrong != pyotp.TOTP(SECRET).at(1_000_000_005.0)
     right = await provider.get_code(Challenge(attempt=2))
-    assert right == pyotp.TOTP(SECRET).at(clock.t)
+    assert right == pyotp.TOTP(SECRET).at(1_000_000_005.0)
+    assert clock.slept == []  # the real code was never used up, so no window wait
 
 
 async def test_codes_never_reach_logs(caplog):
@@ -66,3 +67,12 @@ async def test_codes_never_reach_logs(caplog):
     assert code not in caplog.text
     assert MASK in caplog.text
     assert redactor.redact(f"x {code} y") == f"x {MASK} y"
+
+
+async def test_same_code_is_never_sent_twice_even_on_a_fresh_login():
+    """A whole login retried inside one window starts again at attempt 1."""
+    clock = FakeClock(1_000_000_005.0)
+    provider = TotpProvider(SECRET, clock=clock, sleep=clock.sleep)
+    first = await provider.get_code(Challenge(attempt=1))
+    again = await provider.get_code(Challenge(attempt=1))
+    assert first != again and len(clock.slept) == 1

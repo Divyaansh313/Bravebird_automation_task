@@ -1,48 +1,52 @@
-02:41:59 INFO    bravebird: Run directory: runs/2026-10-30T02-41-59
-02:41:59 WARNING bravebird: Deliberately breaking target doc.asset_link
-02:41:59 INFO    app.session: Loaded saved session from state/github.storage.json (15 cookies)
-02:42:00 INFO    app.stages: stage session.check: start
-02:42:01 INFO    app.flows.github: Session check: signed_in=True status=200
-02:42:01 INFO    bravebird: Saved session is alive
-02:42:01 INFO    app.stages: stage session.check: ok in 0.90s
-02:42:01 INFO    bravebird: Registered 2 account identifier(s) for redaction
-02:42:01 INFO    app.stages: stage nav.to_form: start
-02:42:02 INFO    app.resolver: resolved nav.releases via role role=link name='Releases' [main]
-02:42:03 INFO    app.resolver: resolved nav.draft_new via role role=link name='Draft a new release' [main]
-02:42:04 INFO    app.stages: stage nav.to_form: ok in 2.73s
-02:42:04 INFO    app.stages: stage form.fill: start
-02:42:04 INFO    app.resolver: resolved form.tag.open via role role=button name=/\bTag:/ [main]
-02:42:04 INFO    app.resolver: resolved form.tag.filter via role role=textbox name='Filter tags' [main]
-02:42:06 INFO    app.resolver: resolved form.tag.create via role role=button name='Create new tag' [main]
-02:42:06 INFO    app.resolver: resolved form.tag.confirm via role role=button name='Create' [main]
-02:42:06 INFO    app.resolver: resolved form.target.open via role role=button name=/\bTarget:/ [main]
-02:42:06 INFO    app.resolver: resolved form.target.branch via role role=menuitemradio name='staging' [main]
-02:42:06 INFO    app.resolver: resolved form.target.branch via role role=menuitemradio name='staging' [main]
-02:42:06 INFO    app.resolver: resolved form.target.open via role role=button name=/\bTarget:/ [main]
-02:42:06 INFO    app.resolver: resolved form.title via role role=textbox name='Enter release title' [main]
-02:42:06 INFO    app.resolver: resolved form.notes via role role=textbox name='Release description' [main]
-02:42:06 INFO    app.resolver: resolved form.label via role role=radio name='Pre-release' [main]
-02:42:06 INFO    app.stages: stage form.fill: ok in 2.61s
-02:42:06 INFO    app.stages: stage form.submit: start
-02:42:06 INFO    app.resolver: resolved form.save_draft via role role=button name='Save draft' [main]
-02:42:07 INFO    app.flows.github: Draft saved
-02:42:07 INFO    app.stages: stage form.submit: ok in 0.67s
-02:42:07 INFO    app.stages: stage document.capture: start
-02:42:07 INFO    app.resolver: resolved nav.form_to_releases via role role=link name='Releases' [main]
-02:42:07 INFO    app.resolver: resolved nav.form_to_releases via role role=link name='Releases' [main]
-02:42:08 INFO    app.resolver: resolved doc.release_link via structure a[href$="/releases/tag/v1.0.0"] [main] after 1 failed attempt(s)
-02:42:18 WARNING app.retry: document.capture: attempt 1/3 failed (ResolveError); retrying in 1.0s
-02:42:20 INFO    app.resolver: resolved nav.form_to_releases via role role=link name='Releases' [main]
-02:42:20 INFO    app.resolver: resolved nav.form_to_releases via role role=link name='Releases' [main]
-02:42:20 INFO    app.resolver: resolved doc.release_link via structure a[href$="/releases/tag/v1.0.0"] [main] after 1 failed attempt(s)
-02:42:31 WARNING app.retry: document.capture: attempt 2/3 failed (ResolveError); retrying in 2.3s
-02:42:34 INFO    app.resolver: resolved nav.form_to_releases via role role=link name='Releases' [main]
-02:42:34 INFO    app.resolver: resolved nav.form_to_releases via role role=link name='Releases' [main]
-02:42:35 INFO    app.resolver: resolved doc.release_link via structure a[href$="/releases/tag/v1.0.0"] [main] after 1 failed attempt(s)
-02:42:45 INFO    app.stages: stage document.capture: failed in 38.40s
-02:42:45 ERROR   app.evidence: Evidence bundle written to runs/2026-10-30T02-41-59/evidence
-02:42:46 INFO    app.resolver: resolved cleanup.delete via role role=button name='Delete: Bravebird automated draft' [main]
-02:42:46 INFO    app.resolver: resolved cleanup.confirm via role role=button name='Delete this release' [main]
-02:42:48 INFO    app.flows.github: Draft deleted
-02:42:48 ERROR   bravebird: Final failure in stage document.capture: document.capture: gave up after 3 attempts: Could not resolve 'doc.asset_link' after 6 attempts
-02:42:48 INFO    bravebird: Manifest written to runs/2026-10-30T02-41-59/manifest.json (status=failed, session=reused, files=0)
+17:17:32 INFO    bravebird: Run directory: runs/2026-10-30T17-17-32-2bc6
+17:17:32 WARNING bravebird: Deliberately breaking target doc.asset_link
+17:17:32 INFO    app.stages: stage account.lock: start
+17:17:32 INFO    app.stages: stage account.lock: ok in 0.00s
+17:17:32 INFO    app.session: Loaded saved session from state/github.storage.json (15 cookies)
+17:17:33 INFO    app.browser: Browser: chromium 156.0.8078.4, profile=hardened, proxy=none
+17:17:33 INFO    app.stages: stage session.check: start
+17:17:33 INFO    app.flows.github: Session check: signed_in=True status=200
+17:17:33 INFO    bravebird: Saved session is alive
+17:17:33 INFO    app.stages: stage session.check: ok in 0.81s
+17:17:33 INFO    bravebird: Registered 2 account identifier(s) for redaction
+17:17:33 INFO    app.stages: stage nav.to_form: start
+17:17:35 INFO    app.resolver: resolved nav.releases via role role=link name='Releases' [main]
+17:17:36 INFO    app.resolver: resolved nav.draft_new via role role=link name='Draft a new release' [main]
+17:17:36 INFO    app.stages: stage nav.to_form: ok in 2.74s
+17:17:36 INFO    app.stages: stage form.fill: start
+17:17:36 INFO    app.resolver: resolved form.tag.open via role role=button name=/\bTag:/ [main]
+17:17:37 INFO    app.resolver: resolved form.tag.filter via role role=textbox name='Filter tags' [main]
+17:17:37 INFO    app.resolver: resolved form.tag.filter via role role=textbox name='Filter tags' [main]
+17:17:38 INFO    app.resolver: resolved form.tag.create via role role=button name='Create new tag' [main]
+17:17:38 INFO    app.resolver: resolved form.tag.confirm via role role=button name='Create' [main]
+17:17:39 INFO    app.resolver: resolved form.target.open via role role=button name=/\bTarget:/ [main]
+17:17:39 INFO    app.resolver: resolved form.target.branch via role role=menuitemradio name='staging' [main]
+17:17:39 INFO    app.resolver: resolved form.target.branch via role role=menuitemradio name='staging' [main]
+17:17:39 INFO    app.resolver: resolved form.target.open via role role=button name=/\bTarget:/ [main]
+17:17:39 INFO    app.resolver: resolved form.title via role role=textbox name='Enter release title' [main]
+17:17:39 INFO    app.resolver: resolved form.notes via role role=textbox name='Release description' [main]
+17:17:39 INFO    app.resolver: resolved form.label via role role=radio name='Pre-release' [main]
+17:17:39 INFO    app.stages: stage form.fill: ok in 2.67s
+17:17:39 INFO    app.stages: stage form.submit: start
+17:17:39 INFO    app.resolver: resolved form.save_draft via role role=button name='Save draft' [main]
+17:17:40 INFO    app.flows.github: Draft saved
+17:17:40 INFO    app.stages: stage form.submit: ok in 0.75s
+17:17:40 INFO    app.stages: stage document.capture: start
+17:17:40 INFO    app.resolver: resolved nav.form_to_releases via role role=link name='Releases' [main]
+17:17:40 INFO    app.resolver: resolved nav.form_to_releases via role role=link name='Releases' [main]
+17:17:41 INFO    app.resolver: resolved doc.release_link via structure a[href$="/releases/tag/v1.0.0"] [main] after 1 failed attempt(s)
+17:17:51 WARNING app.retry: document.capture: attempt 1/3 failed (ResolveError); retrying in 1.1s
+17:17:52 INFO    app.resolver: resolved nav.form_to_releases via role role=link name='Releases' [main]
+17:17:52 INFO    app.resolver: resolved nav.form_to_releases via role role=link name='Releases' [main]
+17:17:54 INFO    app.resolver: resolved doc.release_link via structure a[href$="/releases/tag/v1.0.0"] [main] after 1 failed attempt(s)
+17:18:04 WARNING app.retry: document.capture: attempt 2/3 failed (ResolveError); retrying in 1.7s
+17:18:06 INFO    app.resolver: resolved nav.form_to_releases via role role=link name='Releases' [main]
+17:18:06 INFO    app.resolver: resolved nav.form_to_releases via role role=link name='Releases' [main]
+17:18:07 INFO    app.resolver: resolved doc.release_link via structure a[href$="/releases/tag/v1.0.0"] [main] after 1 failed attempt(s)
+17:18:18 INFO    app.stages: stage document.capture: failed in 38.06s
+17:18:18 ERROR   app.evidence: Evidence bundle written to runs/2026-10-30T17-17-32-2bc6/evidence
+17:18:19 INFO    app.resolver: resolved cleanup.delete via role role=button name='Delete: Bravebird automated draft' [main]
+17:18:20 INFO    app.resolver: resolved cleanup.confirm via role role=button name='Delete this release' [main]
+17:18:21 INFO    app.flows.github: Draft deleted
+17:18:21 ERROR   bravebird: Final failure in stage document.capture: document.capture: gave up after 3 attempts: Could not resolve 'doc.asset_link' after 6 attempts
+17:18:21 INFO    bravebird: Manifest written to runs/2026-10-30T17-17-32-2bc6/manifest.json (status=failed, session=reused, files=0)
