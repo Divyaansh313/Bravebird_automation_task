@@ -6,7 +6,6 @@ Written on every run, successful or not, as runs/<id>/manifest.json.
 from __future__ import annotations
 
 import hashlib
-import json
 from dataclasses import asdict, dataclass, field
 from datetime import UTC, datetime
 from pathlib import Path
@@ -54,13 +53,15 @@ class Manifest:
     portal: str
     started_at: str = field(default_factory=now_iso)
     finished_at: str | None = None
-    status: str = "running"  # ok | failed
+    status: str = "running"  # ok | failed | needs_human
     session: str | None = None  # reused | full_login | full_login_after_dead_session
     inputs: dict = field(default_factory=dict)
     pages_visited: list[PageVisit] = field(default_factory=list)
     form: dict = field(default_factory=dict)
     files: list[CapturedFile] = field(default_factory=list)
     retries: list[dict] = field(default_factory=list)
+    browser: dict = field(default_factory=dict)  # profile, user agent, proxy server
+    captcha: str | None = None  # provider, if a CAPTCHA stopped the run
     error: dict | None = None
 
     def visit(self, url: str) -> None:
@@ -75,5 +76,4 @@ class Manifest:
             for r in stages.records
         ]
         data["total_seconds"] = round(sum(r.seconds or 0 for r in stages.records), 3)
-        path.write_text(redactor.redact(json.dumps(data, indent=2, default=str)) + "\n",
-                        encoding="utf-8")
+        path.write_text(redactor.redact_json(data, indent=2) + "\n", encoding="utf-8")

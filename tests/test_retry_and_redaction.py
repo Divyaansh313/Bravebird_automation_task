@@ -92,8 +92,72 @@ def test_evidence_html_masks_any_nonce_or_token_meta():
 
 
 def test_evidence_html_masks_numeric_account_and_repo_ids():
-    html = ('<img src="https://avatars.githubusercontent.com/u/46771398?v=4">'
-            '<meta name="hovercard-subject-tag" content="repository:1438910902">'
-            '<div data-upload-repository-id="1438910902"></div>')
+    html = ('<img src="https://avatars.githubusercontent.com/u/12345678?v=4">'
+            '<meta name="hovercard-subject-tag" content="repository:9876543210">'
+            '<div data-upload-repository-id="9876543210"></div>')
     out = scrub_html(html)
-    assert "46771398" not in out and "1438910902" not in out
+    assert "12345678" not in out and "9876543210" not in out
+
+
+def test_json_redaction_keeps_numbers_and_valid_json():
+    """A 1-99 MB file size is a 7-8 digit number: it must stay a number."""
+    import json
+
+    data = {"bytes": 2_345_678, "note": "code 123456 sent", "nested": [{"n": 12345678}]}
+    out = json.loads(redactor.redact_json(data))
+    assert out["bytes"] == 2_345_678 and out["nested"][0]["n"] == 12345678
+    assert out["note"] == f"code {MASK} sent"
+
+
+def test_json_redaction_masks_secrets_that_json_would_escape():
+    redactor.add('pa"ss\\word-x9')
+    assert 'pa\\"ss' not in redactor.redact_json({"m": 'login with pa"ss\\word-x9 failed'})
+
+
+def test_log_tracebacks_are_redacted(tmp_path):
+    import logging
+
+    from app.redact import RedactingFilter
+
+    redactor.add("traceback-secret-value")
+    handler = logging.FileHandler(tmp_path / "t.log")
+    handler.addFilter(RedactingFilter())
+    log = logging.getLogger("bravebird.test.tb")
+    log.addHandler(handler)
+    try:
+        raise RuntimeError("failed for traceback-secret-value")
+    except RuntimeError:
+        log.exception("boom")
+    finally:
+        log.removeHandler(handler)
+        handler.close()
+    text = (tmp_path / "t.log").read_text()
+    assert "RuntimeError" in text and "traceback-secret-value" not in text
+
+
+@pytest.mark.parametrize("text, masked", [
+    ("Your verification code is 482913.", True),
+    ("GET /login?otp=123456&x=1", True),
+    ("2FA code was 99887766", True),
+    ("pin: 1234567", True),
+    ("Order 1234567 total 2500000 bytes", False),
+    ("Invoice number 88776655 due", False),
+    ("statement for account 12345678", False),
+])
+def test_digit_backstop_needs_code_context(text, masked):
+    out = redactor.redact(text)
+    assert (MASK in out) is masked, out
+
+
+def test_generated_codes_are_masked_without_context():
+    redactor.add("731905")  # what TotpProvider does with every code it hands out
+    assert redactor.redact("value 731905 here") == f"value {MASK} here"
+
+
+@pytest.mark.parametrize("html", [
+    '<meta content="v2:secret-nonce" name="fetch-nonce">',          # content first
+    "<meta name='csrf-token' content='secret-nonce'>",              # single quotes
+    '<meta http-equiv="x-session-id" content="secret-nonce">',      # http-equiv
+])
+def test_meta_scrub_ignores_attribute_order_and_quotes(html):
+    assert "secret-nonce" not in scrub_html(html)

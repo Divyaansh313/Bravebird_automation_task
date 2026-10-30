@@ -41,8 +41,9 @@ class TotpProvider:
 
     - If the current 30 s window is about to end, waits for the next one so the
       code does not expire on the way to the server.
-    - On a retry, never returns the code that was just rejected: waits for the
-      next window instead.
+    - Never returns the same code twice (GitHub rejects a code that was already
+      used, and a rejected one won't start working): waits for the next window
+      instead. This also covers a whole login being retried within one window.
     """
 
     def __init__(self, secret: str, *, min_validity: float = 3.0, clock=time.time, sleep=None):
@@ -56,6 +57,10 @@ class TotpProvider:
         interval = self._totp.interval
         return interval - (self._clock() % interval)
 
+    def peek(self) -> str:
+        """The current code, without using it up (for the wrong-code simulator)."""
+        return self._totp.at(self._clock())
+
     async def get_code(self, challenge: Challenge) -> str:
         left = self._seconds_left()
         if left < self._min_validity:
@@ -63,9 +68,10 @@ class TotpProvider:
             await self._sleep(left + 0.5)
 
         code = self._totp.at(self._clock())
-        if challenge.attempt > 1 and code == self._last_code:
+        if code == self._last_code:
             left = self._seconds_left()
-            log.info("Previous code was rejected; waiting %.1fs for a fresh one", left)
+            log.info("Code for this window was already used; waiting %.1fs for a fresh one",
+                     left)
             await self._sleep(left + 0.5)
             code = self._totp.at(self._clock())
 
@@ -81,12 +87,14 @@ class WrongFirstCodeProvider:
     Used by `--simulate-wrong-code` to demonstrate the retry path live.
     """
 
-    def __init__(self, inner: CodeProvider):
+    def __init__(self, inner: TotpProvider):
         self._inner = inner
 
     async def get_code(self, challenge: Challenge) -> str:
         if challenge.attempt == 1:
-            real = await self._inner.get_code(challenge)
+            # Peek instead of get_code: the real code stays unused, so attempt 2
+            # can send it straight away instead of waiting for the next window.
+            real = self._inner.peek()
             wrong = f"{(int(real) + 1) % 1_000_000:06d}"
             redactor.add(wrong)
             log.info("Simulating a wrong code on attempt 1")

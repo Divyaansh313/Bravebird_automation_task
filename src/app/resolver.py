@@ -9,8 +9,9 @@ them in a fixed order, most semantic first:
     4. structure                (position in the form, attribute shape)
     5. id / class               (last resort; the most volatile)
 
-Every frame on the page is searched, main frame first, so an element that
-moves into an iframe is still found. Each strategy's outcome is recorded; the
+Each strategy searches every frame on the page (main frame first) before the
+next strategy is tried, so an element that moves into an iframe is still found
+by its most semantic description. Each strategy's outcome is recorded; the
 winner is logged and the full attempt list goes into failure evidence.
 
 Nothing here talks to the network, so it runs offline against saved HTML.
@@ -19,6 +20,7 @@ Nothing here talks to the network, so it runs offline against saved HTML.
 from __future__ import annotations
 
 import asyncio
+import contextvars
 import logging
 import re
 import time
@@ -35,10 +37,13 @@ log = logging.getLogger(__name__)
 TextMatch = str | re.Pattern[str]
 
 STRATEGY_ORDER = ("role", "label", "near_text", "structure", "css")
+WEAK_STRATEGIES = frozenset({"near_text", "structure", "css"})
 
-# Target keys to sabotage (set by --break-step). Every strategy for these keys
-# looks for something that cannot exist, so the failure path runs for real.
-BROKEN_TARGETS: set[str] = set()
+# Target keys to sabotage (set by --break-step), per run. Every strategy for
+# these keys looks for something that cannot exist, so the failure path runs
+# for real. A ContextVar so concurrent jobs don't affect each other.
+BROKEN_TARGETS: contextvars.ContextVar[frozenset[str]] = contextvars.ContextVar(
+    "broken_targets", default=frozenset())
 
 
 @dataclass(frozen=True)
@@ -127,6 +132,13 @@ def _candidates(t: Target) -> list[tuple[str, str, Factory]]:
     return out
 
 
+async def _frame_ready(frame: Frame) -> bool:
+    try:
+        return await frame.evaluate("document.readyState") == "complete"
+    except PlaywrightError:
+        return False
+
+
 def _frame_name(frame: Frame) -> str:
     if frame.parent_frame is None:
         return "main"
@@ -147,26 +159,35 @@ async def _try(factory: Factory, frame: Frame) -> tuple[str, Locator | None]:
 
 
 async def resolve(page: Page, target: Target, *, timeout: float = 10.0,
-                  poll: float = 0.25) -> Resolved:
+                  poll: float = 0.25, settle: float = 3.0) -> Resolved:
     """Find exactly one visible element for `target`, or raise ResolveError.
 
     Polls until `timeout` because elements may still be rendering. A strategy
     that matches several elements is recorded but only used if no strategy
     finds a unique match by the deadline.
     """
-    if target.key in BROKEN_TARGETS:
+    if target.key in BROKEN_TARGETS.get():
         target = _sabotaged(target)
     candidates = _candidates(target)
     deadline = time.monotonic() + timeout
+    settle_until = time.monotonic() + min(settle, timeout)
     while True:
         attempts: list[Attempt] = []
         fallback: Resolved | None = None
-        for frame in page.frames:  # main frame first, then iframes
-            fname = _frame_name(frame)
-            for strategy, query, factory in candidates:
+        # Strategy order comes first: a role match inside an iframe beats a
+        # class match in the main frame. Within a strategy, main frame first.
+        for strategy, query, factory in candidates:
+            for frame in page.frames:
+                fname = _frame_name(frame)
                 result, loc = await _try(factory, frame)
                 attempts.append(Attempt(strategy, query, fname, result))
                 if result == "unique" and loc is not None:
+                    if (strategy in WEAK_STRATEGIES and time.monotonic() < settle_until
+                            and not await _frame_ready(frame)):
+                        # Page still loading: the semantic match may not be rendered
+                        # yet. Don't let a weaker strategy win early.
+                        attempts[-1].result = "unique (deferred: page loading)"
+                        continue
                     _log_win(target, strategy, query, fname, attempts)
                     return Resolved(loc, strategy, query, fname, attempts)
                 if result.startswith("ambiguous") and fallback is None and loc is not None:
