@@ -1,13 +1,13 @@
-"""Every flow target, on every saved page, under every mutation the reviewers apply:
-renamed classes, reordered siblings, an added wrapper div, and an iframe.
+"""Every flow target, on every saved page, under every mutation the reviewers apply
+(renamed classes, reordered siblings, an added wrapper div, an iframe) plus a copy
+rewrite ("relabel") that removes every visible word and naming attribute, so the
+structural and id/class fallbacks are exercised too.
 Fully offline: the browser blocks all network requests.
 """
 
 import pytest
 
-from app.offline import ALL_MUTATIONS, FIXTURES, PAGE_TARGETS, apply_mutations, resolve_all
-
-VARIANTS = [[], *[[m] for m in ALL_MUTATIONS], ALL_MUTATIONS]
+from app.offline import FIXTURES, PAGE_TARGETS, VARIANTS, apply_mutations, resolve_all
 
 
 @pytest.mark.parametrize("page_key", sorted(PAGE_TARGETS))
@@ -21,6 +21,9 @@ async def test_targets_survive_mutation(page, page_key, mutations):
     assert not missing, f"{page_key} + {mutations}: not found {missing}"
     if "iframe" in mutations:
         assert all(r["frame"] != "main" for r in rows), "should be found inside the iframe"
+    if "relabel" in mutations:
+        # No words left to match, so only wording-independent strategies can win.
+        assert {r["strategy"] for r in rows} <= {"structure", "css"}, rows
 
 
 async def test_renamed_ids_and_labels_fall_through_to_later_strategies(page):

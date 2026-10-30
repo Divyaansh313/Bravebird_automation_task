@@ -31,7 +31,7 @@ PAGE_TARGETS: dict[str, tuple[str, list[Target]]] = {
     "releases": ("github_releases.html", [github.DRAFT_NEW_LINK, github.release_link("v1.0.0")]),
     "form": ("github_release_form.html", [
         github.TAG_BUTTON, github.TARGET_BUTTON, github.TITLE, github.NOTES,
-        github._option("form.label", "radio", "Pre-release"), github.SAVE_DRAFT,
+        github.release_label("Pre-release"), github.SAVE_DRAFT,
     ]),
     "release": ("github_release_tag.html", [
         github.asset_link("v1.0.0", "statement-v1.0.0.pdf"),
@@ -65,6 +65,26 @@ MUTATIONS: dict[str, str] = {
         });
     }""",
     # Whole body moved into an iframe (srcdoc, so still offline).
+    # Copy rewrite: every visible string becomes "Item N" and naming attributes
+    # go, so role/label/nearby-text strategies can't match and the structural
+    # and id/class fallbacks have to carry the lookup.
+    "relabel": """() => {
+        let n = 0;
+        const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+        const nodes = [];
+        while (walker.nextNode()) nodes.push(walker.currentNode);
+        for (const t of nodes) {
+            const p = t.parentElement;
+            if (!p || ['SCRIPT', 'STYLE', 'TEXTAREA'].includes(p.tagName)) continue;
+            if (t.nodeValue.trim()) t.nodeValue = ' Item ' + (n++) + ' ';
+        }
+        for (const attr of ['aria-label', 'aria-labelledby', 'aria-describedby', 'title',
+                            'placeholder', 'alt']) {
+            document.querySelectorAll('[' + attr + ']').forEach(el => el.removeAttribute(attr));
+        }
+        document.querySelectorAll('input[type=submit], input[type=button]')
+            .forEach(el => el.value = 'Item ' + (n++));
+    }""",
     "iframe": """() => {
         const html = '<!doctype html><html><head>' + document.head.innerHTML +
                      '</head><body>' + document.body.innerHTML + '</body></html>';
@@ -77,7 +97,16 @@ MUTATIONS: dict[str, str] = {
         return new Promise(r => f.addEventListener('load', () => r()));
     }""",
 }
-ALL_MUTATIONS = ["classes", "reorder", "wrapper", "iframe"]  # iframe last: wraps the rest
+ALL_MUTATIONS = ["classes", "reorder", "wrapper", "relabel", "iframe"]  # iframe last: wraps
+
+# Combined variants. "relabel" and "classes" together remove both the words and
+# the class names at once, which is a full redesign rather than a mutation, so
+# the copy rewrite is combined with the structural changes that keep classes.
+COMBOS: dict[str, list[str]] = {
+    "structural": ["classes", "reorder", "wrapper", "iframe"],
+    "copy+structure": ["reorder", "wrapper", "relabel", "iframe"],
+}
+VARIANTS: list[list[str]] = [[], *[[m] for m in ALL_MUTATIONS], *COMBOS.values()]
 
 
 async def _offline_page(pw) -> tuple:
@@ -139,7 +168,7 @@ async def cmd_mutate(src: Path, dst: Path, mutations: list[str]) -> int:
 
 
 async def cmd_check() -> int:
-    variants = [[], *[[m] for m in ALL_MUTATIONS], ALL_MUTATIONS]
+    variants = VARIANTS
     failures = 0
     async with async_playwright() as pw:
         browser, page = await _offline_page(pw)
