@@ -1,50 +1,54 @@
-02:26:33 INFO    bravebird: Run directory: runs/2026-10-30T02-26-33
-02:26:33 INFO    app.session: No saved session at state/github.storage.json
-02:26:34 INFO    app.stages: stage login: start
-02:26:35 INFO    app.resolver: resolved login.username via role role=textbox name=/username or email/ [main]
-02:26:35 INFO    app.resolver: resolved login.password via role role=textbox name=/^password$/ [main]
-02:26:35 INFO    app.resolver: resolved login.submit via role role=button name='Sign in' [main]
-02:26:36 INFO    app.resolver: resolved 2fa.code via role role=textbox name=/authentication code|one-time|verification code/ [main]
-02:26:36 INFO    app.otp: Generated totp code (attempt 1)
-02:26:36 INFO    app.resolver: resolved 2fa.code via role role=textbox name=/authentication code|one-time|verification code/ [main]
-02:26:38 INFO    app.flows.github: 2FA accepted on attempt 1
-02:26:38 INFO    app.flows.github: Signed in
-02:26:38 INFO    app.stages: stage login: ok in 3.64s
-02:26:38 INFO    app.stages: stage session.save: start
-02:26:38 INFO    app.session: Saved session state to state/github.storage.json
-02:26:38 INFO    app.stages: stage session.save: ok in 0.01s
-02:26:38 INFO    bravebird: Registered 2 account identifier(s) for redaction
-02:26:38 INFO    app.stages: stage nav.to_form: start
-02:26:39 INFO    app.resolver: resolved nav.releases via role role=link name='Releases' [main]
-02:26:41 INFO    app.resolver: resolved nav.draft_new via role role=link name='Draft a new release' [main]
-02:26:41 INFO    app.stages: stage nav.to_form: ok in 3.76s
-02:26:41 INFO    app.stages: stage form.fill: start
-02:26:41 INFO    app.resolver: resolved form.tag.open via structure main :is(button, [role="button"]):has-text("Tag:") [main] after 2 failed attempt(s)
-02:26:42 INFO    app.resolver: resolved form.tag.filter via role role=textbox name='Filter tags' [main]
-02:26:43 INFO    app.resolver: resolved form.tag.create via role role=button name='Create new tag' [main]
-02:26:43 INFO    app.resolver: resolved form.tag.confirm via role role=button name='Create' [main]
-02:26:43 INFO    app.resolver: resolved form.target.open via role role=button name=/\bTarget:/ [main]
-02:26:44 INFO    app.resolver: resolved form.target.branch via role role=menuitemradio name='staging' [main]
-02:26:44 INFO    app.resolver: resolved form.target.branch via role role=menuitemradio name='staging' [main]
-02:26:44 INFO    app.resolver: resolved form.target.open via role role=button name=/\bTarget:/ [main]
-02:26:44 INFO    app.resolver: resolved form.title via role role=textbox name='Enter release title' [main]
-02:26:44 INFO    app.resolver: resolved form.notes via role role=textbox name='Release description' [main]
-02:26:44 INFO    app.resolver: resolved form.label via role role=radio name='Pre-release' [main]
-02:26:44 INFO    app.stages: stage form.fill: ok in 2.45s
-02:26:44 INFO    app.stages: stage form.submit: start
-02:26:44 INFO    app.resolver: resolved form.save_draft via role role=button name='Save draft' [main]
-02:26:45 INFO    app.flows.github: Draft saved
-02:26:45 INFO    app.stages: stage form.submit: ok in 0.67s
-02:26:45 INFO    app.stages: stage document.capture: start
-02:26:45 INFO    app.resolver: resolved nav.form_to_releases via role role=link name='Releases' [main]
-02:26:45 INFO    app.resolver: resolved nav.form_to_releases via role role=link name='Releases' [main]
-02:26:45 INFO    app.resolver: resolved doc.release_link via structure a[href$="/releases/tag/v1.0.0"] [main] after 1 failed attempt(s)
-02:26:47 INFO    app.resolver: resolved doc.asset_link via role role=link name='statement-v1.0.0.pdf' [main]
-02:26:47 INFO    app.flows.github: Downloaded statement-v1.0.0.pdf
-02:26:47 INFO    app.stages: stage document.capture: ok in 2.70s
-02:26:47 INFO    app.stages: stage cleanup.draft: start
-02:26:48 INFO    app.resolver: resolved cleanup.delete via role role=button name='Delete: Bravebird automated draft' [main]
-02:26:48 INFO    app.resolver: resolved cleanup.confirm via role role=button name='Delete this release' [main]
-02:26:50 INFO    app.flows.github: Draft deleted
-02:26:50 INFO    app.stages: stage cleanup.draft: ok in 2.75s
-02:26:50 INFO    bravebird: Manifest written to runs/2026-10-30T02-26-33/manifest.json (status=ok, session=full_login, files=1)
+17:16:32 INFO    bravebird: Run directory: runs/2026-10-30T17-16-32-e473
+17:16:32 INFO    app.stages: stage account.lock: start
+17:16:32 INFO    app.stages: stage account.lock: ok in 0.00s
+17:16:32 INFO    app.session: No saved session at state/github.storage.json
+17:16:33 INFO    app.browser: Browser: chromium 156.0.8078.4, profile=hardened, proxy=none
+17:16:33 INFO    app.stages: stage login: start
+17:16:33 INFO    app.resolver: resolved login.username via role role=textbox name=/username or email/ [main]
+17:16:33 INFO    app.resolver: resolved login.password via role role=textbox name=/^password$/ [main]
+17:16:34 INFO    app.resolver: resolved login.submit via role role=button name='Sign in' [main]
+17:16:35 INFO    app.resolver: resolved 2fa.code via role role=textbox name=/authentication code|one-time|verification code/ [main]
+17:16:35 INFO    app.otp: Generated totp code (attempt 1)
+17:16:35 INFO    app.resolver: resolved 2fa.code via role role=textbox name=/authentication code|one-time|verification code/ [main]
+17:16:37 INFO    app.flows.github: 2FA accepted on attempt 1
+17:16:37 INFO    app.flows.github: Signed in
+17:16:37 INFO    app.stages: stage login: ok in 3.67s
+17:16:37 INFO    app.stages: stage session.save: start
+17:16:37 INFO    app.session: Saved session state to state/github.storage.json
+17:16:37 INFO    app.stages: stage session.save: ok in 0.06s
+17:16:37 INFO    bravebird: Registered 2 account identifier(s) for redaction
+17:16:37 INFO    app.stages: stage nav.to_form: start
+17:16:39 INFO    app.resolver: resolved nav.releases via role role=link name='Releases' [main]
+17:16:40 INFO    app.resolver: resolved nav.draft_new via role role=link name='Draft a new release' [main]
+17:16:40 INFO    app.stages: stage nav.to_form: ok in 3.57s
+17:16:40 INFO    app.stages: stage form.fill: start
+17:16:40 INFO    app.resolver: resolved form.tag.open via structure main :is(button, [role="button"]):has-text("Tag:") [main] after 2 failed attempt(s)
+17:16:41 INFO    app.resolver: resolved form.tag.filter via role role=textbox name='Filter tags' [main]
+17:16:41 INFO    app.resolver: resolved form.tag.filter via role role=textbox name='Filter tags' [main]
+17:16:42 INFO    app.resolver: resolved form.tag.create via role role=button name='Create new tag' [main]
+17:16:42 INFO    app.resolver: resolved form.tag.confirm via role role=button name='Create' [main]
+17:16:43 INFO    app.resolver: resolved form.target.open via role role=button name=/\bTarget:/ [main]
+17:16:43 INFO    app.resolver: resolved form.target.branch via role role=menuitemradio name='staging' [main]
+17:16:43 INFO    app.resolver: resolved form.target.branch via role role=menuitemradio name='staging' [main]
+17:16:43 INFO    app.resolver: resolved form.target.open via role role=button name=/\bTarget:/ [main]
+17:16:43 INFO    app.resolver: resolved form.title via role role=textbox name='Enter release title' [main]
+17:16:43 INFO    app.resolver: resolved form.notes via role role=textbox name='Release description' [main]
+17:16:43 INFO    app.resolver: resolved form.label via role role=radio name='Pre-release' [main]
+17:16:43 INFO    app.stages: stage form.fill: ok in 2.53s
+17:16:43 INFO    app.stages: stage form.submit: start
+17:16:43 INFO    app.resolver: resolved form.save_draft via role role=button name='Save draft' [main]
+17:16:44 INFO    app.flows.github: Draft saved
+17:16:44 INFO    app.stages: stage form.submit: ok in 0.89s
+17:16:44 INFO    app.stages: stage document.capture: start
+17:16:44 INFO    app.resolver: resolved nav.form_to_releases via role role=link name='Releases' [main]
+17:16:44 INFO    app.resolver: resolved nav.form_to_releases via role role=link name='Releases' [main]
+17:16:45 INFO    app.resolver: resolved doc.release_link via structure a[href$="/releases/tag/v1.0.0"] [main] after 1 failed attempt(s)
+17:16:46 INFO    app.resolver: resolved doc.asset_link via role role=link name='statement-v1.0.0.pdf' [main]
+17:16:47 INFO    app.flows.github: Downloaded statement-v1.0.0.pdf
+17:16:47 INFO    app.stages: stage document.capture: ok in 3.15s
+17:16:47 INFO    app.stages: stage cleanup.draft: start
+17:16:48 INFO    app.resolver: resolved cleanup.delete via role role=button name='Delete: Bravebird automated draft' [main]
+17:16:48 INFO    app.resolver: resolved cleanup.confirm via role role=button name='Delete this release' [main]
+17:16:50 INFO    app.flows.github: Draft deleted
+17:16:50 INFO    app.stages: stage cleanup.draft: ok in 2.82s
+17:16:50 INFO    bravebird: Manifest written to runs/2026-10-30T17-16-32-e473/manifest.json (status=ok, session=full_login, files=1)

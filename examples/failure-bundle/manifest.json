@@ -1,8 +1,8 @@
 {
-  "run_id": "2026-10-30T02-41-59",
+  "run_id": "2026-10-30T17-17-32-2bc6",
   "portal": "github",
-  "started_at": "2026-10-29T21:11:59.715+00:00",
-  "finished_at": "2026-10-29T21:12:48.419+00:00",
+  "started_at": "2026-10-30T11:47:32.337+00:00",
+  "finished_at": "2026-10-30T11:48:21.912+00:00",
   "status": "failed",
   "session": "reused",
   "inputs": {
@@ -23,52 +23,61 @@
     },
     "headless": true,
     "state_dir": "state",
-    "output_dir": "runs"
+    "output_dir": "runs",
+    "proxy": null,
+    "proxy_route": null,
+    "fingerprint": "hardened",
+    "timezone": null,
+    "captcha_wait_seconds": 0
   },
   "pages_visited": [
     {
       "url": "https://github.com/[REDACTED]/bravebird-portal-sandbox",
-      "at": "2026-10-29T21:12:01.039+00:00"
+      "at": "2026-10-30T11:47:33.751+00:00"
     },
     {
       "url": "https://github.com/[REDACTED]/bravebird-portal-sandbox/releases",
-      "at": "2026-10-29T21:12:03.153+00:00"
+      "at": "2026-10-30T11:47:35.773+00:00"
     },
     {
       "url": "https://github.com/[REDACTED]/bravebird-portal-sandbox/releases/new",
-      "at": "2026-10-29T21:12:04.055+00:00"
+      "at": "2026-10-30T11:47:36.693+00:00"
     },
     {
-      "url": "https://github.com/[REDACTED]/bravebird-portal-sandbox/releases/edit/untagged-e296e903c83f422fbcf2",
-      "at": "2026-10-29T21:12:07.333+00:00"
+      "url": "https://github.com/[REDACTED]/bravebird-portal-sandbox/releases/edit/untagged-2086f22cabd521431c0a",
+      "at": "2026-10-30T11:47:40.121+00:00"
     },
     {
       "url": "https://github.com/[REDACTED]/bravebird-portal-sandbox/releases",
-      "at": "2026-10-29T21:12:08.202+00:00"
+      "at": "2026-10-30T11:47:41.053+00:00"
     },
     {
       "url": "https://github.com/[REDACTED]/bravebird-portal-sandbox/releases/tag/v1.0.0",
-      "at": "2026-10-29T21:12:08.867+00:00"
+      "at": "2026-10-30T11:47:41.798+00:00"
     },
     {
       "url": "https://github.com/[REDACTED]/bravebird-portal-sandbox/releases",
-      "at": "2026-10-29T21:12:20.738+00:00"
+      "at": "2026-10-30T11:47:53.986+00:00"
     },
     {
       "url": "https://github.com/[REDACTED]/bravebird-portal-sandbox/releases/tag/v1.0.0",
-      "at": "2026-10-29T21:12:21.609+00:00"
+      "at": "2026-10-30T11:47:54.803+00:00"
     },
     {
       "url": "https://github.com/[REDACTED]/bravebird-portal-sandbox/releases",
-      "at": "2026-10-29T21:12:34.843+00:00"
+      "at": "2026-10-30T11:48:07.331+00:00"
     },
     {
       "url": "https://github.com/[REDACTED]/bravebird-portal-sandbox/releases/tag/v1.0.0",
-      "at": "2026-10-29T21:12:35.718+00:00"
+      "at": "2026-10-30T11:48:08.164+00:00"
+    },
+    {
+      "url": "https://github.com/[REDACTED]/bravebird-portal-sandbox/releases/edit/untagged-2086f22cabd521431c0a",
+      "at": "2026-10-30T11:48:18.914+00:00"
     },
     {
       "url": "https://github.com/[REDACTED]/bravebird-portal-sandbox/releases",
-      "at": "2026-10-29T21:12:46.439+00:00"
+      "at": "2026-10-30T11:48:19.712+00:00"
     }
   ],
   "form": {
@@ -79,7 +88,7 @@
     "title": "Bravebird automated draft",
     "notes_chars": 40,
     "label": "Pre-release",
-    "draft_url": "https://github.com/[REDACTED]/bravebird-portal-sandbox/releases/edit/untagged-e296e903c83f422fbcf2",
+    "draft_url": "https://github.com/[REDACTED]/bravebird-portal-sandbox/releases/edit/untagged-2086f22cabd521431c0a",
     "cleanup_after_failure": "deleted"
   },
   "files": [],
@@ -106,43 +115,55 @@
       "message": "Could not resolve 'doc.asset_link' after 6 attempts"
     }
   ],
+  "browser": {
+    "profile": "hardened",
+    "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/156.0.0.0 Safari/537.36",
+    "proxy": null
+  },
+  "captcha": null,
   "error": {
     "stage": "document.capture",
     "type": "RetriesExhausted",
     "message": "document.capture: gave up after 3 attempts: Could not resolve 'doc.asset_link' after 6 attempts",
-    "evidence": "runs/2026-10-30T02-41-59/evidence"
+    "evidence": "runs/2026-10-30T17-17-32-2bc6/evidence"
   },
   "stages": [
     {
+      "key": "account.lock",
+      "status": "ok",
+      "seconds": 0.001,
+      "note": null
+    },
+    {
       "key": "session.check",
       "status": "ok",
-      "seconds": 0.903,
+      "seconds": 0.805,
       "note": "alive"
     },
     {
       "key": "nav.to_form",
       "status": "ok",
-      "seconds": 2.73,
+      "seconds": 2.743,
       "note": null
     },
     {
       "key": "form.fill",
       "status": "ok",
-      "seconds": 2.611,
+      "seconds": 2.674,
       "note": null
     },
     {
       "key": "form.submit",
       "status": "ok",
-      "seconds": 0.667,
+      "seconds": 0.754,
       "note": null
     },
     {
       "key": "document.capture",
       "status": "failed",
-      "seconds": 38.396,
+      "seconds": 38.065,
       "note": null
     }
   ],
-  "total_seconds": 45.307
+  "total_seconds": 45.042
 }
